@@ -43,7 +43,7 @@ function GameCanvas() {
                 this.hitbox = {
                     position: this.position,
                     height: 100,
-                    width: this.width
+                    width: 74
                 }
             }
 
@@ -59,9 +59,10 @@ function GameCanvas() {
                     (this.image.width / this.framesMax) * this.scale,
                     this.image.height * this.scale
                 )
-                // ctx.fillStyle = 'red'
-                // ctx.fillRect(this.hitbox.position.x, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
-
+                ctx.beginPath()
+                ctx.strokeStyle = 'red'
+                ctx.rect(this.hitbox.position.x + 34, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
+                ctx.stroke()
             }
 
             update() {
@@ -130,6 +131,11 @@ function GameCanvas() {
                 this.framesCurrent = 0
                 this.framesElapsed = 0
                 this.framesHold = 15
+                this.hitbox = {
+                    position: this.position,
+                    height: 50,
+                    width: 34
+                }
             }
 
             draw() {
@@ -142,7 +148,12 @@ function GameCanvas() {
                     this.position.x,
                     this.position.y,
                     (this.image.width / this.framesMax) * this.scale,
-                    this.image.height * this.scale)
+                    this.image.height * this.scale
+                )
+                ctx.beginPath()
+                ctx.strokeStyle = 'red'
+                ctx.rect(this.hitbox.position.x + 8, this.hitbox.position.y + 20, this.hitbox.width, this.hitbox.height)
+                ctx.stroke()
             }
 
             update() {
