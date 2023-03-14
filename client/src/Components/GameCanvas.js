@@ -246,6 +246,14 @@ function GameCanvas() {
                     keys.d.pressed = true
                     lastKey = 'd'
                     break
+                case 'w':
+                    player.velocity.y = -10
+                    break
+                case 's':
+                    if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
+                        player.velocity.y = 2
+                    }
+                    break
                 case 'A':
                     keys.a.pressed = true
                     lastKey = 'a'
@@ -254,7 +262,7 @@ function GameCanvas() {
                     keys.d.pressed = true
                     lastKey = 'd'
                     break
-                case ' ':
+                case 'W':
                     player.velocity.y = -10
                     break
                 case 'ArrowLeft':
