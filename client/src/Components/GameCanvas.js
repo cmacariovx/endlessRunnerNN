@@ -6,7 +6,7 @@ import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
 import fullIdle from '../assets/NightBorneCharacter/NightBorneIdle3.png'
 import idle1 from '../assets/NightBorneCharacter/idle1.png'
 import idle2 from '../assets/NightBorneCharacter/idle2.png'
-import fire3 from '../assets/fire_fx_v1.0/png/orange/fire3.png'
+import fire from '../assets/fire_fx_v1.0/png/orange/loops/burning_loop_1.png'
 
 import './GameCanvas.css'
 
@@ -112,7 +112,7 @@ function GameCanvas() {
         let obstacleId = 0
 
         class Obstacle {
-            constructor({ position, velocity, imageSrc }) {
+            constructor({ position, velocity, imageSrc, scale = 1, framesMax = 1 }) {
                 this.position = position
                 this.velocity = velocity
                 this.height = 150
@@ -120,10 +120,24 @@ function GameCanvas() {
                 this.image = new Image()
                 this.image.src = imageSrc
                 this.obstacleId = obstacleId + 1
+                this.scale = scale
+                this.framesMax = framesMax
+                this.framesCurrent = 0
+                this.framesElapsed = 0
+                this.framesHold = 15
             }
 
             draw() {
-                ctx.drawImage(this.image, this.position.x, this.position.y)
+                ctx.drawImage(
+                    this.image,
+                    this.framesCurrent * (this.image.width / this.framesMax),
+                    0,
+                    this.image.width / this.framesMax,
+                    this.image.height,
+                    this.position.x,
+                    this.position.y,
+                    (this.image.width / this.framesMax) * this.scale,
+                    this.image.height * this.scale)
             }
 
             update() {
@@ -138,6 +152,16 @@ function GameCanvas() {
                     spawnObstacle()
                 }
                 this.draw()
+                this.framesElapsed++
+
+                if (this.framesElapsed % this.framesHold === 0) {
+                    if (this.framesCurrent < this.framesMax - 1) {
+                        this.framesCurrent++
+                    }
+                    else {
+                        this.framesCurrent = 0
+                    }
+                }
             }
         }
 
@@ -208,13 +232,15 @@ function GameCanvas() {
             obstacles.push(new Obstacle({
                 position: {
                     x: obstacleX,
-                    y: 437
+                    y: 424
                 },
                 velocity: {
                     x: -1.4,
                     y: 0
                 },
-                imageSrc: fire3
+                imageSrc: fire,
+                scale: 2,
+                framesMax: 8
             }))
             obstacleId++
         }
