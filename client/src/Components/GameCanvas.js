@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 import backgroundMain from '../assets/parallax_demon_woods_pack/parallax_demon_woods_pack/layers/demonwoods.png'
 import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
 import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
+import fullIdle from '../assets/NightBorneCharacter/NightBorneIdle3.png'
 import idle1 from '../assets/NightBorneCharacter/idle1.png'
 import idle2 from '../assets/NightBorneCharacter/idle2.png'
 import fire3 from '../assets/fire_fx_v1.0/png/orange/fire3.png'
@@ -25,19 +26,33 @@ function GameCanvas() {
         const gravity = 0.2
 
         class Sprite {
-            constructor({ position, velocity, imageSrc }) {
+            constructor({ position, velocity, imageSrc, scale = 1, framesMax = 1 }) {
                 this.position = position
                 this.velocity = velocity
-                this.height = 84
-                this.width = 50
+                this.height = 156
+                this.width = 100
                 this.image = new Image()
-                this.image.src = imageSrc[0]
-                this.image2 = new Image()
-                this.image2.src = imageSrc[1]
+                this.image.src = imageSrc
+                this.isOnGround = true
+                this.currentJumps = 0
+                this.scale = scale
+                this.framesMax = framesMax
+                this.framesCurrent = 0
+                this.framesElapsed = 0
+                this.framesHold = 12
             }
 
             drawPlayer() {
-                ctx.drawImage(this.image, this.position.x, this.position.y)
+                ctx.drawImage(
+                    this.image,
+                    this.framesCurrent * (this.image.width / this.framesMax),
+                    0,
+                    this.image.width / this.framesMax,
+                    this.image.height,
+                    this.position.x,
+                    this.position.y,
+                    (this.image.width / this.framesMax) * this.scale,
+                    this.image.height * this.scale)
             }
 
             drawPlayer2() {
@@ -45,9 +60,24 @@ function GameCanvas() {
             }
 
             update() {
-                let random = Math.floor(Math.random() * 250)
-                if (random == 1) this.drawPlayer2()
-                else this.drawPlayer()
+                this.drawPlayer()
+                this.framesElapsed++
+
+                if (this.framesElapsed % this.framesHold === 0) {
+                    if (this.framesCurrent < this.framesMax - 1) {
+                        this.framesCurrent++
+                    }
+                    else {
+                        this.framesCurrent = 0
+                    }
+                }
+
+                if (this.velocity.y === 0) {
+                    this.isOnGround = true
+                    this.currentJumps = 0
+                }
+                else this.isOnGround = false
+
                 this.position.x += this.velocity.x
                 this.position.y += this.velocity.y
 
@@ -141,7 +171,9 @@ function GameCanvas() {
                 x: 0,
                 y: 0
             },
-            imageSrc: [idle1, idle2]
+            imageSrc: fullIdle,
+            scale: 1,
+            framesMax: 9
         })
 
         const background = new Background({
@@ -275,10 +307,16 @@ function GameCanvas() {
             player.velocity.x = 0
 
             if (keys.a.pressed && lastKey === 'a') {
-                player.velocity.x = -2
+                if (player.position.x + player.width + player.velocity.x < 30) {
+                    player.velocity.x = 0
+                }
+                else player.velocity.x = -2
             }
             else if (keys.d.pressed && lastKey === 'd') {
-                player.velocity.x = 2
+                if (player.position.x + player.width + player.velocity.x >= canvas.width - 52) {
+                    player.velocity.x = 0
+                }
+                else player.velocity.x = 2
             }
         }
 
@@ -327,7 +365,11 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'w':
-                    player.velocity.y = -8
+                    if (player.currentJumps < 2) {
+                        if (player.currentJumps === 1) player.velocity.y = -6
+                        else player.velocity.y = -8
+                        player.currentJumps++
+                    }
                     break
                 case 's':
                     if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
@@ -343,7 +385,11 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'W':
-                    player.velocity.y = -8
+                    if (player.currentJumps < 2) {
+                        if (player.currentJumps === 1) player.velocity.y = -6
+                        else player.velocity.y = -8
+                        player.currentJumps++
+                    }
                     break
                 case 'S':
                     if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
@@ -359,7 +405,11 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'ArrowUp':
-                    player.velocity.y = -8
+                    if (player.currentJumps < 2) {
+                        if (player.currentJumps === 1) player.velocity.y = -6
+                        else player.velocity.y = -8
+                        player.currentJumps++
+                    }
                     break
                 case 'ArrowDown':
                     if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
