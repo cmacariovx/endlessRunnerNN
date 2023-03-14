@@ -196,6 +196,15 @@ function GameCanvas() {
 
         function spawnObstacle() {
             let obstacleX = (Math.floor(Math.random() * canvas.width)) + canvas.width
+
+            if (obstacles.length) {
+                let lastObstacleX = obstacles[obstacles.length - 1].position.x
+
+                while (obstacleX - lastObstacleX < 200 && obstacleX - lastObstacleX > 100) {
+                    obstacleX += 100
+                }
+            }
+
             obstacles.push(new Obstacle({
                 position: {
                     x: obstacleX,
