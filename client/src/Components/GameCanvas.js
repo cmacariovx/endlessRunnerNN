@@ -5,6 +5,7 @@ import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
 import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
 import idle1 from '../assets/NightBorneCharacter/idle1.png'
 import idle2 from '../assets/NightBorneCharacter/idle2.png'
+import fire3 from '../assets/fire_fx_v1.0/png/orange/fire3.png'
 
 import './GameCanvas.css'
 
@@ -77,6 +78,39 @@ function GameCanvas() {
             }
         }
 
+        let obstacles = []
+        let obstacleId = 0
+
+        class Obstacle {
+            constructor({ position, velocity, imageSrc }) {
+                this.position = position
+                this.velocity = velocity
+                this.height = 150
+                this.width = 50
+                this.image = new Image()
+                this.image.src = imageSrc
+                this.obstacleId = obstacleId + 1
+            }
+
+            draw() {
+                ctx.drawImage(this.image, this.position.x, this.position.y)
+            }
+
+            update() {
+                this.position.x += this.velocity.x
+                if (this.position.x < -40) {
+                    for (let i = 0; i < obstacles.length; i++) {
+                        let obstacle = obstacles[i]
+                        if (obstacle.obstacleId === this.obstacleId) {
+                            obstacles.splice(i, 1)
+                        }
+                    }
+                    spawnObstacle()
+                }
+                this.draw()
+            }
+        }
+
         class Floor {
             constructor({ position, velocity, imageSrc }) {
                 this.position = position
@@ -117,6 +151,32 @@ function GameCanvas() {
             },
             imageSrc: backgroundMain
         })
+
+        let maxStartObstacles = 5
+
+        function spawnInitialObstacles() {
+            for (let i = 0; i < maxStartObstacles; i++) {
+                spawnObstacle()
+            }
+        }
+
+        spawnInitialObstacles()
+
+        function spawnObstacle() {
+            let obstacleX = (Math.floor(Math.random() * canvas.width)) + canvas.width
+            obstacles.push(new Obstacle({
+                position: {
+                    x: obstacleX,
+                    y: 437
+                },
+                velocity: {
+                    x: -1.4,
+                    y: 0
+                },
+                imageSrc: fire3
+            }))
+            obstacleId++
+        }
 
         let mainFloorsArr = []
         let xPosition1 = 954
@@ -225,6 +285,8 @@ function GameCanvas() {
         animate()
 
         function drawFloor() {
+            let obstaclesArr = obstacles
+            let obstaclesLength = obstacles.length
             window.requestAnimationFrame(drawFloor)
             for (let i = 0; i < mainFloorsArr.length; i++) {
                 let floor = mainFloorsArr[i]
@@ -244,6 +306,11 @@ function GameCanvas() {
             for (let i = 0; i < subFloorsArr3.length; i++) {
                 let floor = subFloorsArr3[i]
                 floor.update()
+            }
+
+            for (let i = 0; i < obstaclesLength; i++) {
+                let fire = obstaclesArr[i]
+                fire.update()
             }
         }
 
