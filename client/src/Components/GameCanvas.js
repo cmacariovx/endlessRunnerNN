@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import backgroundMain from '../assets/parallax_demon_woods_pack/parallax_demon_woods_pack/layers/demonwoods.png'
 import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
 import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
-import fullIdle from '../assets/NightBorneCharacter/NightBorneIdle3.png'
+import fullIdle from '../assets/NightBorneCharacter/NightborneIdleMain.png'
 import idle1 from '../assets/NightBorneCharacter/idle1.png'
 import idle2 from '../assets/NightBorneCharacter/idle2.png'
 import fire from '../assets/fire_fx_v1.0/png/orange/loops/burning_loop_1.png'
@@ -29,7 +29,7 @@ function GameCanvas() {
             constructor({ position, velocity, imageSrc, scale = 1, framesMax = 1 }) {
                 this.position = position
                 this.velocity = velocity
-                this.height = 156
+                this.height = 100
                 this.width = 100
                 this.image = new Image()
                 this.image.src = imageSrc
@@ -40,6 +40,11 @@ function GameCanvas() {
                 this.framesCurrent = 0
                 this.framesElapsed = 0
                 this.framesHold = 12
+                this.hitbox = {
+                    position: this.position,
+                    height: 100,
+                    width: this.width
+                }
             }
 
             drawPlayer() {
@@ -52,11 +57,11 @@ function GameCanvas() {
                     this.position.x,
                     this.position.y,
                     (this.image.width / this.framesMax) * this.scale,
-                    this.image.height * this.scale)
-            }
+                    this.image.height * this.scale
+                )
+                // ctx.fillStyle = 'red'
+                // ctx.fillRect(this.hitbox.position.x, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
 
-            drawPlayer2() {
-                ctx.drawImage(this.image2, this.position.x, this.position.y)
             }
 
             update() {
@@ -342,13 +347,13 @@ function GameCanvas() {
             player.velocity.x = 0
 
             if (keys.a.pressed && lastKey === 'a') {
-                if (player.position.x + player.width + player.velocity.x < 30) {
+                if (player.position.x + player.width + player.velocity.x < 100) {
                     player.velocity.x = 0
                 }
                 else player.velocity.x = -2
             }
             else if (keys.d.pressed && lastKey === 'd') {
-                if (player.position.x + player.width + player.velocity.x >= canvas.width - 52) {
+                if (player.position.x + player.width + player.velocity.x >= canvas.width - 10) {
                     player.velocity.x = 0
                 }
                 else player.velocity.x = 2
