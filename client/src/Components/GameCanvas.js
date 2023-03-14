@@ -3,6 +3,8 @@ import React, { useEffect, useRef } from "react";
 import backgroundMain from '../assets/parallax_demon_woods_pack/parallax_demon_woods_pack/layers/demonwoods.png'
 import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
 import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
+import idle1 from '../assets/NightBorneCharacter/idle1.png'
+import idle2 from '../assets/NightBorneCharacter/idle2.png'
 
 import './GameCanvas.css'
 
@@ -22,19 +24,29 @@ function GameCanvas() {
         const gravity = 0.2
 
         class Sprite {
-            constructor({ position, velocity }) {
+            constructor({ position, velocity, imageSrc }) {
                 this.position = position
                 this.velocity = velocity
-                this.height = 150
+                this.height = 84
+                this.width = 50
+                this.image = new Image()
+                this.image.src = imageSrc[0]
+                this.image2 = new Image()
+                this.image2.src = imageSrc[1]
             }
 
             drawPlayer() {
-                ctx.fillStyle = 'red'
-                ctx.fillRect(this.position.x, this.position.y, 50, this.height)
+                ctx.drawImage(this.image, this.position.x, this.position.y)
+            }
+
+            drawPlayer2() {
+                ctx.drawImage(this.image2, this.position.x, this.position.y)
             }
 
             update() {
-                this.drawPlayer()
+                let random = Math.floor(Math.random() * 250)
+                if (random == 1) this.drawPlayer2()
+                else this.drawPlayer()
                 this.position.x += this.velocity.x
                 this.position.y += this.velocity.y
 
@@ -94,7 +106,8 @@ function GameCanvas() {
             velocity: {
                 x: 0,
                 y: 0
-            }
+            },
+            imageSrc: [idle1, idle2]
         })
 
         const background = new Background({
@@ -247,11 +260,11 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'w':
-                    player.velocity.y = -10
+                    player.velocity.y = -8
                     break
                 case 's':
                     if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
-                        player.velocity.y = 2
+                        player.velocity.y = 4
                     }
                     break
                 case 'A':
@@ -263,7 +276,12 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'W':
-                    player.velocity.y = -10
+                    player.velocity.y = -8
+                    break
+                case 'S':
+                    if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
+                        player.velocity.y = 4
+                    }
                     break
                 case 'ArrowLeft':
                     keys.a.pressed = true
@@ -274,7 +292,12 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'ArrowUp':
-                    player.velocity.y = -10
+                    player.velocity.y = -8
+                    break
+                case 'ArrowDown':
+                    if (player.position.y + player.height + player.velocity.y < canvas.height - 88) {
+                        player.velocity.y = 4
+                    }
                     break
             }
         })
