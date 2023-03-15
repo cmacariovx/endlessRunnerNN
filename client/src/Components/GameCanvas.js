@@ -82,20 +82,23 @@ function GameCanvas() {
             }
 
             drawSensors(obstacles) {
-                const rayLength = 400
+                const rayLength = 400;
                 const rayColor = 'white'
                 const rayFill = 'black'
 
-                for (let angle = -90; angle <= 90; angle += 15) {
+                const startX = this.x + this.hitboxOffsetX + this.hitbox.width / 2
+                const startY = this.y + this.hitboxOffsetY + this.hitbox.height / 2
+
+                for (let angle = -180; angle <= 0; angle += 15) {
                     const radians = angle * (Math.PI / 180)
-                    const endX = this.x + this.hitboxOffsetX + rayLength * Math.cos(radians)
-                    const endY = this.y + this.hitboxOffsetY + this.height / 2 - rayLength * Math.sin(radians)
+                    const endX = startX + rayLength * Math.cos(radians)
+                    const endY = startY - rayLength * Math.sin(radians)
 
                     let closestIntersection = null
                     let closestDistance = Infinity
 
                     for (const obstacle of obstacles) {
-                        const intersection = rayObstacleIntersection(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY + this.height / 2, endX, endY, obstacle)
+                        const intersection = rayObstacleIntersection(startX, startY, endX, endY, obstacle)
                         if (intersection && intersection.distance < closestDistance) {
                             closestDistance = intersection.distance
                             closestIntersection = intersection
@@ -104,14 +107,14 @@ function GameCanvas() {
 
                     ctx.strokeStyle = rayColor
                     ctx.beginPath()
-                    ctx.moveTo(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY + this.height / 2)
+                    ctx.moveTo(startX, startY)
                     ctx.lineTo(endX, endY)
                     ctx.stroke()
 
                     if (closestIntersection) {
                         ctx.strokeStyle = rayFill
                         ctx.beginPath()
-                        ctx.moveTo(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY + this.height / 2)
+                        ctx.moveTo(startX, startY)
                         ctx.lineTo(closestIntersection.x, closestIntersection.y)
                         ctx.stroke()
                     }
@@ -149,10 +152,11 @@ function GameCanvas() {
                     this.velY += gravity
                 }
 
+                this.x += this.velX
                 this.y += this.velY
 
-                if (this.y + this.height > canvas.height + 8) {
-                    this.y = (canvas.height + 8) - this.height
+                if (this.y + this.height > canvas.height - 82) {
+                    this.y = (canvas.height - 82) - this.height
                     this.velY = 0
                     this.onGround = true
                 }
@@ -224,7 +228,7 @@ function GameCanvas() {
                     x: this.x + this.hitboxOffsetX,
                     y: this.y + this.hitboxOffsetY,
                     width: 35,
-                    height: this.frameHeight * this.scale
+                    height: 50
                 }
             }
 
@@ -255,7 +259,7 @@ function GameCanvas() {
             }
 
             update() {
-                this.x -= 1
+                this.x -= 1.4
 
                 if (this.x + this.width < 0) {
                     // this.x = canvas.width
@@ -275,12 +279,23 @@ function GameCanvas() {
 
         function createObstacle() {
             const x = canvas.width
-            const y = canvas.height - 50
+            const y = canvas.height - 166
             const width = 50
             const height = 50
-            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, -26, 12, 32)
+            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26)
             obstacles.push(obstacle)
         }
+
+        const keys = {
+            a: {
+                pressed: false
+            },
+            d: {
+                pressed: false
+            }
+        }
+
+        let lastKey
 
         function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -288,6 +303,21 @@ function GameCanvas() {
             character.draw()
             character.drawSensors(obstacles)
             character.update()
+
+            character.velX = 0
+
+            if (keys.a.pressed && lastKey === 'a') {
+                if (character.x + character.width + character.velX < 100) {
+                    character.velX = 0
+                }
+                else character.velX = -2
+            }
+            else if (keys.d.pressed && lastKey === 'd') {
+                if (character.x + character.width + character.velX >= canvas.width - 10) {
+                    character.velX = 0
+                }
+                else character.velX = 2
+            }
 
             if (obstacles.length === 0 || (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) < canvas.width - 300) {
                 createObstacle()
@@ -425,16 +455,6 @@ function GameCanvas() {
             xPosition4 -= 71
         }
 
-        const keys = {
-            a: {
-                pressed: false
-            },
-            d: {
-                pressed: false
-            }
-        }
-
-        let lastKey
 
         function drawFloor() {
             window.requestAnimationFrame(drawFloor)
@@ -459,7 +479,7 @@ function GameCanvas() {
             }
         }
 
-        // drawFloor()
+        drawFloor()
 
         window.addEventListener('keydown', (event) => {
             switch (event.key) {
@@ -472,7 +492,7 @@ function GameCanvas() {
                     lastKey = 'd'
                     break
                 case 'w':
-                    character.velY = -8
+                    character.velY = -9
                     break
                 case 's':
                     if (character.y + character.height + character.velY < canvas.height - 88) {
@@ -489,14 +509,14 @@ function GameCanvas() {
                     break
                 case 'W':
                     if (character.currentJumps < 2) {
-                        if (character.currentJumps === 1) character.velocity.y = -6
-                        else character.velocity.y = -8
+                        if (character.currentJumps === 1) character.velY = -6
+                        else character.velY = -8
                         character.currentJumps++
                     }
                     break
                 case 'S':
-                    if (character.position.y + character.height + character.velocity.y < canvas.height - 88) {
-                        character.velocity.y = 4
+                    if (character.position.y + character.height + character.velY < canvas.height - 88) {
+                        character.velY = 4
                     }
                     break
                 case 'ArrowLeft':
@@ -509,14 +529,14 @@ function GameCanvas() {
                     break
                 case 'ArrowUp':
                     if (character.currentJumps < 2) {
-                        if (character.currentJumps === 1) character.velocity.y = -6
-                        else character.velocity.y = -8
+                        if (character.currentJumps === 1) character.velY = -6
+                        else character.velY = -8
                         character.currentJumps++
                     }
                     break
                 case 'ArrowDown':
-                    if (character.position.y + character.height + character.velocity.y < canvas.height - 88) {
-                        character.velocity.y = 4
+                    if (character.y + character.height + character.velY < canvas.height - 88) {
+                        character.velY = 4
                     }
                     break
             }
