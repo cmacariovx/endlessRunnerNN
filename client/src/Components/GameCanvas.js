@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react"
 
 import backgroundMain from '../assets/parallax_demon_woods_pack/parallax_demon_woods_pack/layers/demonwoods.png'
 import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
@@ -52,102 +52,96 @@ function GameCanvas() {
         })
 
         class Character {
-            constructor(x, y, width, height) {
-                this.x = x
-                this.y = y
+            constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0) {
+                this.x = x + offsetX
+                this.y = y + offsetY
                 this.width = width
                 this.height = height
+                this.scale = scale
+                this.offsetX = offsetX
+                this.offsetY = offsetY
+                this.hitboxOffsetX = hitboxOffsetX
+                this.hitboxOffsetY = hitboxOffsetY
                 this.velY = 0
                 this.velX = 0
                 this.onGround = true
+                this.image = new Image()
+                this.image.src = imageSrc
+                this.frameCount = frameCount // total number of frames in the sprite sheet
+                this.frameWidth = this.image.width / frameCount // frame width within the sprite sheet
+                this.frameHeight = this.image.height // frame height within the sprite sheet
+                this.frameRate = frameRate // animation frame rate
+                this.frameIndex = 0 // current frame to be displayed
+                this.frameTimer = 0 // timer to control the frame rate
                 this.hitbox = {
-                    x: this.x,
-                    y: this.y,
-                    width: this.width,
-                    height: this.height
+                    x: this.x + this.hitboxOffsetX,
+                    y: this.y + this.hitboxOffsetY,
+                    width: 70,
+                    height: this.frameHeight
                 }
             }
 
-            // drawSensors(obstacles) {
-            //     const rayLength = 400;
-            //     const rayColor = 'yellow';
-
-            //     for (let angle = -45; angle <= 45; angle += 15) {
-            //         const radians = angle * (Math.PI / 180);
-            //         const endX = this.x + rayLength * Math.cos(radians);
-            //         const endY = this.y + this.height / 2 - rayLength * Math.sin(radians);
-
-            //         let closestIntersection = null;
-            //         let closestDistance = Infinity;
-
-            //         for (const obstacle of obstacles) {
-            //             const intersection = rayObstacleIntersection(this.x, this.y + this.height / 2, endX, endY, obstacle);
-            //             if (intersection && intersection.distance < closestDistance) {
-            //                 closestDistance = intersection.distance;
-            //                 closestIntersection = intersection;
-            //             }
-            //         }
-
-            //         ctx.strokeStyle = rayColor;
-            //         ctx.beginPath();
-            //         ctx.moveTo(this.x, this.y + this.height / 2);
-
-            //         if (closestIntersection) {
-            //             console.log(closestIntersection)
-            //             ctx.lineTo(closestIntersection.x, closestIntersection.y);
-            //         } else {
-            //             ctx.lineTo(endX, endY);
-            //         }
-
-            //         ctx.stroke();
-            //     }
-            // }
-
             drawSensors(obstacles) {
-                const rayLength = 400;
-                const rayColor = 'yellow';
-                const rayFill = 'black';
+                const rayLength = 400
+                const rayColor = 'white'
+                const rayFill = 'black'
 
-                for (let angle = -45; angle <= 45; angle += 15) {
-                    const radians = angle * (Math.PI / 180);
-                    const endX = this.x + rayLength * Math.cos(radians);
-                    const endY = this.y + this.height / 2 - rayLength * Math.sin(radians);
+                for (let angle = -90; angle <= 90; angle += 15) {
+                    const radians = angle * (Math.PI / 180)
+                    const endX = this.x + this.hitboxOffsetX + rayLength * Math.cos(radians)
+                    const endY = this.y + this.hitboxOffsetY + this.height / 2 - rayLength * Math.sin(radians)
 
-                    let closestIntersection = null;
-                    let closestDistance = Infinity;
+                    let closestIntersection = null
+                    let closestDistance = Infinity
 
                     for (const obstacle of obstacles) {
-                        const intersection = rayObstacleIntersection(this.x, this.y + this.height / 2, endX, endY, obstacle);
+                        const intersection = rayObstacleIntersection(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY + this.height / 2, endX, endY, obstacle)
                         if (intersection && intersection.distance < closestDistance) {
-                            closestDistance = intersection.distance;
-                            closestIntersection = intersection;
+                            closestDistance = intersection.distance
+                            closestIntersection = intersection
                         }
                     }
 
-                    ctx.strokeStyle = rayColor;
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y + this.height / 2);
-                    ctx.lineTo(endX, endY);
-                    ctx.stroke();
+                    ctx.strokeStyle = rayColor
+                    ctx.beginPath()
+                    ctx.moveTo(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY + this.height / 2)
+                    ctx.lineTo(endX, endY)
+                    ctx.stroke()
 
                     if (closestIntersection) {
-                        ctx.strokeStyle = rayFill;
-                        ctx.beginPath();
-                        ctx.moveTo(this.x, this.y + this.height / 2);
-                        ctx.lineTo(closestIntersection.x, closestIntersection.y);
-                        ctx.stroke();
+                        ctx.strokeStyle = rayFill
+                        ctx.beginPath()
+                        ctx.moveTo(this.x + this.hitboxOffsetX, this.y + this.hitboxOffsetY + this.height / 2)
+                        ctx.lineTo(closestIntersection.x, closestIntersection.y)
+                        ctx.stroke()
                     }
                 }
             }
 
             draw() {
-                ctx.fillStyle = 'blue';
-                ctx.fillRect(this.x, this.y, this.width, this.height)
+                ctx.drawImage(
+                    this.image,
+                    this.frameIndex * this.frameWidth,
+                    0,
+                    this.frameWidth,
+                    this.frameHeight,
+                    this.x,
+                    this.y,
+                    this.frameWidth * this.scale,
+                    this.frameHeight * this.scale
+                )
 
                 // draw hitbox
-                ctx.strokeStyle = 'yellow'
+                ctx.strokeStyle = 'red'
                 ctx.lineWidth = 2
                 ctx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
+
+                // Update the frame timer and index
+                this.frameTimer++
+                if (this.frameTimer >= this.frameRate) {
+                    this.frameIndex = (this.frameIndex + 1) % this.frameCount
+                    this.frameTimer = 0
+                }
             }
 
             update() {
@@ -157,34 +151,34 @@ function GameCanvas() {
 
                 this.y += this.velY
 
-                if (this.y + this.height > canvas.height) {
-                    this.y = canvas.height - this.height
+                if (this.y + this.height > canvas.height + 8) {
+                    this.y = (canvas.height + 8) - this.height
                     this.velY = 0
                     this.onGround = true
                 }
                 else this.onGround = false
 
                 // Update hitbox
-                this.hitbox.x = this.x;
-                this.hitbox.y = this.y;
+                this.hitbox.x = this.x + this.hitboxOffsetX
+                this.hitbox.y = this.y + this.hitboxOffsetY
             }
         }
 
         function liangBarskyIntersection(x0, y0, x1, y1, left, top, right, bottom) {
-            const dx = x1 - x0;
-            const dy = y1 - y0;
-            const p = [-dx, dx, -dy, dy];
-            const q = [x0 - left, right - x0, y0 - top, bottom - y0];
-            const u = [0, 1];
+            const dx = x1 - x0
+            const dy = y1 - y0
+            const p = [-dx, dx, -dy, dy]
+            const q = [x0 - left, right - x0, y0 - top, bottom - y0]
+            const u = [0, 1]
 
             for (let i = 0; i < 4; i++) {
                 if (p[i] === 0) {
-                    if (q[i] < 0) return null;
+                    if (q[i] < 0) return null
                 } else {
-                    const t = q[i] / p[i];
-                    if (p[i] < 0 && u[0] < t) u[0] = t;
-                    else if (p[i] > 0 && u[1] > t) u[1] = t;
-                    if (u[0] > u[1]) return null;
+                    const t = q[i] / p[i]
+                    if (p[i] < 0 && u[0] < t) u[0] = t
+                    else if (p[i] > 0 && u[1] > t) u[1] = t
+                    if (u[0] > u[1]) return null
                 }
             }
 
@@ -192,60 +186,72 @@ function GameCanvas() {
                 x: x0 + u[0] * dx,
                 y: y0 + u[0] * dy,
                 distance: Math.sqrt(Math.pow(u[0] * dx, 2) + Math.pow(u[0] * dy, 2)),
-            };
+            }
         }
 
         function rayObstacleIntersection(x0, y0, x1, y1, obstacle) {
-            const left = obstacle.x;
-            const top = obstacle.y;
-            const right = obstacle.x + obstacle.width;
-            const bottom = obstacle.y + obstacle.height;
+            const left = obstacle.hitbox.x
+            const top = obstacle.hitbox.y
+            const right = obstacle.hitbox.x + obstacle.hitbox.width
+            const bottom = obstacle.hitbox.y + obstacle.hitbox.height
 
-            return liangBarskyIntersection(x0, y0, x1, y1, left, top, right, bottom);
+            return liangBarskyIntersection(x0, y0, x1, y1, left, top, right, bottom)
         }
-
-        // function rayObstacleIntersection(startX, startY, endX, endY, obstacle) {
-        //     const hitbox = obstacle.hitbox;
-        //     const denominator = (startX - endX) * (hitbox.y - (hitbox.y + hitbox.height)) - (startY - endY) * (hitbox.x - (hitbox.x + hitbox.width));
-        //     if (denominator === 0) return null;
-
-        //     const ua = ((startX - endX) * (startY - hitbox.y) - (startY - endY) * (startX - hitbox.x)) / denominator;
-        //     const ub = ((hitbox.x - (hitbox.x + hitbox.width)) * (startY - hitbox.y) - (hitbox.y - (hitbox.y + hitbox.height)) * (startX - hitbox.x)) / denominator;
-
-        //     if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
-        //         const intersectionX = startX + ua * (endX - startX);
-        //         const intersectionY = startY + ua * (endY - startY);
-        //         const distance = Math.hypot(intersectionX - startX, intersectionY - startY);
-        //         return { x: intersectionX, y: intersectionY, distance };
-        //     }
-        //     return null;
-        // }
 
 
         class Obstacle {
-            constructor(x, y, width, height) {
-                this.x = x
-                this.y = y
+            constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0) {
+                this.x = x + offsetX
+                this.y = y + offsetY
                 this.width = width
                 this.height = height
+                this.scale = scale
+                this.offsetX = offsetX
+                this.offsetY = offsetY
+                this.hitboxOffsetX = hitboxOffsetX
+                this.hitboxOffsetY = hitboxOffsetY
                 this.velY = 0
                 this.velX = 0
+                this.image = new Image()
+                this.image.src = imageSrc
+                this.frameCount = frameCount // total number of frames in the sprite sheet
+                this.frameWidth = this.image.width / frameCount // frame width within the sprite sheet
+                this.frameHeight = this.image.height // frame height within the sprite sheet
+                this.frameRate = frameRate // animation frame rate
+                this.frameIndex = 0 // current frame to be displayed
+                this.frameTimer = 0 // timer to control the frame rate
                 this.hitbox = {
-                    x: this.x,
-                    y: this.y,
-                    width: this.width,
-                    height: this.height
+                    x: this.x + this.hitboxOffsetX,
+                    y: this.y + this.hitboxOffsetY,
+                    width: 35,
+                    height: this.frameHeight * this.scale
                 }
             }
 
             draw() {
-                ctx.fillStyle = 'red'
-                ctx.fillRect(this.x, this.y, this.width, this.height)
+                ctx.drawImage(
+                    this.image,
+                    this.frameIndex * this.frameWidth,
+                    0,
+                    this.frameWidth,
+                    this.frameHeight,
+                    this.x,
+                    this.y,
+                    this.frameWidth * this.scale,
+                    this.frameHeight * this.scale
+                )
 
                 // draw hitbox
-                ctx.strokeStyle = 'yellow'
+                ctx.strokeStyle = 'red'
                 ctx.lineWidth = 2
                 ctx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
+
+                // Update the frame timer and index
+                this.frameTimer++
+                if (this.frameTimer >= this.frameRate) {
+                    this.frameIndex = (this.frameIndex + 1) % this.frameCount
+                    this.frameTimer = 0
+                }
             }
 
             update() {
@@ -259,12 +265,12 @@ function GameCanvas() {
                 }
 
                 // Update hitbox
-                this.hitbox.x = this.x;
-                this.hitbox.y = this.y;
+                this.hitbox.x = this.x + this.hitboxOffsetX
+                this.hitbox.y = this.y + this.hitboxOffsetY
             }
         }
 
-        const character = new Character(50, canvas.height - 100, 50, 100)
+        const character = new Character(50, canvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
         const obstacles = []
 
         function createObstacle() {
@@ -272,7 +278,7 @@ function GameCanvas() {
             const y = canvas.height - 50
             const width = 50
             const height = 50
-            const obstacle = new Obstacle(x, y, width, height)
+            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, -26, 12, 32)
             obstacles.push(obstacle)
         }
 
@@ -280,7 +286,7 @@ function GameCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             background.update()
             character.draw()
-            character.drawSensors(obstacles); // Add this line to draw the sensors
+            character.drawSensors(obstacles)
             character.update()
 
             if (obstacles.length === 0 || (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) < canvas.width - 300) {
@@ -293,22 +299,13 @@ function GameCanvas() {
                 obstacle.draw()
                 obstacle.update()
 
-                // if (character.x < obstacle.x + obstacle.width &&
-                //     character.x + character.width > obstacle.x &&
-                //     character.y < obstacle.y + obstacle.height &&
-                //     character.y + character.height > obstacle.y) {
-                //     // Collision detected
-                //     collisionDetected = true
-                //     break
-                // }
-
                 if (character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
                     character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
                     character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
                     character.hitbox.y + character.hitbox.height > obstacle.hitbox.y) {
                     // Collision detected
-                    collisionDetected = true;
-                    break;
+                    collisionDetected = true
+                    break
                 }
 
                 if (obstacle.x + obstacle.width < 0) {
@@ -331,284 +328,6 @@ function GameCanvas() {
 
         gameLoop()
 
-    //     class Sprite {
-    //         constructor({ position, velocity, imageSrc, scale = 1, framesMax = 1 }) {
-    //             this.position = position
-    //             this.velocity = velocity
-    //             this.height = 100
-    //             this.width = 100
-    //             this.image = new Image()
-    //             this.image.src = imageSrc
-    //             this.isOnGround = true
-    //             this.currentJumps = 0
-    //             this.scale = scale
-    //             this.framesMax = framesMax
-    //             this.framesCurrent = 0
-    //             this.framesElapsed = 0
-    //             this.framesHold = 12
-    //             this.hitbox = {
-    //                 position: this.position,
-    //                 height: 100,
-    //                 width: 74
-    //             }
-    //             this.sensor = new Sensor(this)
-    //         }
-
-    //         drawPlayer() {
-    //             ctx.drawImage(
-    //                 this.image,
-    //                 this.framesCurrent * (this.image.width / this.framesMax),
-    //                 0,
-    //                 this.image.width / this.framesMax,
-    //                 this.image.height,
-    //                 this.position.x,
-    //                 this.position.y,
-    //                 (this.image.width / this.framesMax) * this.scale,
-    //                 this.image.height * this.scale
-    //             )
-    //             this.sensor.draw()
-    //             ctx.beginPath()
-    //             ctx.strokeStyle = 'red'
-    //             ctx.rect(this.hitbox.position.x + 34, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
-    //             ctx.stroke()
-    //         }
-
-    //         update(obstacles) {
-    //             this.sensor.update(obstacles)
-    //             this.drawPlayer()
-    //             this.framesElapsed++
-
-    //             if (this.framesElapsed % this.framesHold === 0) {
-    //                 if (this.framesCurrent < this.framesMax - 1) {
-    //                     this.framesCurrent++
-    //                 }
-    //                 else {
-    //                     this.framesCurrent = 0
-    //                 }
-    //             }
-
-    //             if (this.velocity.y === 0) {
-    //                 this.isOnGround = true
-    //                 this.currentJumps = 0
-    //             }
-    //             else this.isOnGround = false
-
-    //             this.position.x += this.velocity.x
-    //             this.position.y += this.velocity.y
-
-    //             this.hitbox.position.x = this.position.x
-    //             this.hitbox.position.y = this.position.y
-
-    //             if (this.position.y + this.height + this.velocity.y >= canvas.height - 88) {
-    //                 this.velocity.y = 0
-    //             }
-    //             else {
-    //                 this.velocity.y += gravity
-    //             }
-    //         }
-    //     }
-
-    //     let obstacles = []
-    //     let obstacleId = 0
-
-    //     class Obstacle {
-    //         constructor({ position, velocity, imageSrc, scale = 1, framesMax = 1 }) {
-    //             this.position = position
-    //             this.velocity = velocity
-    //             this.height = 150
-    //             this.width = 50
-    //             this.image = new Image()
-    //             this.image.src = imageSrc
-    //             this.obstacleId = obstacleId + 1
-    //             this.scale = scale
-    //             this.framesMax = framesMax
-    //             this.framesCurrent = 0
-    //             this.framesElapsed = 0
-    //             this.framesHold = 15
-    //             this.hitbox = {
-    //                 position: this.position,
-    //                 height: 50,
-    //                 width: 34
-    //             }
-
-    //             const topLeft = {x: this.position.x, y: this.position.y}
-    //             const topRight = {x: this.position.x + this.hitbox.width, y: this.position.y}
-    //             const bottomLeft = {x: this.position.x, y: this.position.y + this.hitbox.height}
-    //             const bottomRight = {x: this.position.x + this.hitbox.width, y: this.position.y + this.hitbox.height}
-
-    //             this.borders = [
-    //                 [topLeft, bottomLeft],
-    //                 [topRight, bottomRight],
-    //                 [topLeft, topRight],
-    //                 [bottomLeft, bottomRight]
-    //             ]
-    //         }
-
-    //         draw() {
-    //             ctx.drawImage(
-    //                 this.image,
-    //                 this.framesCurrent * (this.image.width / this.framesMax),
-    //                 0,
-    //                 this.image.width / this.framesMax,
-    //                 this.image.height,
-    //                 this.position.x,
-    //                 this.position.y,
-    //                 (this.image.width / this.framesMax) * this.scale,
-    //                 this.image.height * this.scale
-    //                 )
-    //                 ctx.beginPath()
-    //                 ctx.strokeStyle = 'red'
-    //                 ctx.rect(this.hitbox.position.x + 8, this.hitbox.position.y + 20, this.hitbox.width, this.hitbox.height)
-    //                 ctx.stroke()
-    //         }
-
-    //         update() {
-    //             this.position.x += this.velocity.x
-
-    //             this.hitbox.position.x = this.position.x
-    //             this.hitbox.position.y = this.position.y
-
-    //             if (this.position.x < -40) {
-    //                 for (let i = 0; i < obstacles.length; i++) {
-    //                     let obstacle = obstacles[i]
-    //                     if (obstacle.obstacleId === this.obstacleId) {
-    //                         obstacles.splice(i, 1)
-    //                         spawnObstacle()
-    //                     }
-    //                 }
-    //             }
-
-    //             this.draw()
-    //             this.framesElapsed++
-
-    //             if (this.framesElapsed % this.framesHold === 0) {
-    //                 if (this.framesCurrent < this.framesMax - 1) {
-    //                     this.framesCurrent++
-    //                 }
-    //                 else {
-    //                     this.framesCurrent = 0
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     function lerp(A, B, t) {
-    //         return A + (B - A) * t
-    //     }
-
-    //     function getIntersection(A, B, C, D) {
-    //         const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x)
-    //         const uTop = (C.y - A.y) * (A.x - B.x) - (C.x - A.x) * (A.y - B.y)
-    //         const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y)
-
-    //         if (bottom != 0) {
-    //             const t = tTop / bottom
-    //             const u = uTop / bottom
-
-    //             if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-    //                 return {
-    //                     x: lerp(A.x, B.x, t),
-    //                     y: lerp(A.y, B.y, t),
-    //                     offset: t
-    //                 }
-    //             }
-    //         }
-
-    //         return null
-    //     }
-
-    //     class Sensor {
-    //         constructor(player) {
-    //             this.player = player
-    //             this.rayCount = 5
-    //             this.rayLength = 250
-    //             this.raySpread = Math.PI / 8
-    //             this.rays = []
-    //             this.readings = []
-    //         }
-
-    //         update(obstacles) {
-    //             this.castRays()
-    //             this.readings = []
-
-    //             for (let i = 0; i < obstacles.length; i++) {
-    //                 let obstacle = obstacles[i]
-    //                 let borders = obstacle.borders
-    //                 for (let j = 0; j < this.rays.length; j++) {
-    //                     this.readings.push(this.getReading(this.rays[j], borders))
-    //                 }
-    //             }
-    //         }
-
-    //         getReading(ray, borders) {
-    //             let touches = []
-
-    //             for (let i = 0; i < borders.length; i++){
-    //                 const touch = getIntersection(ray[0], ray[1], borders[i][0], borders[i][1])
-    //                 if (touch) {
-    //                     touches.push(touch)
-    //                 }
-    //             }
-
-    //             if (!touches.length) {
-    //                 return null
-    //             }
-    //             else {
-    //                 const offsets = touches.map(e => e.offset)
-    //                 const minOffset = Math.min(...offsets)
-
-    //                 return touches.find(e => e.offset === minOffset)
-    //             }
-    //         }
-
-    //         castRays() {
-    //             this.rays = []
-
-    //             for (let i = 0; i < this.rayCount; i++) {
-    //                 const rayAngle = lerp(
-    //                     this.raySpread / 2,
-    //                     -this.raySpread / 2,
-    //                     i / (this.rayCount - 1)
-    //                 )
-
-    //                 const start = {
-    //                     x: this.player.position.x + 70,
-    //                     y: this.player.position.y + 50
-    //                 }
-    //                 const end = {
-    //                     x: (this.player.position.x + 70) + Math.cos(rayAngle) * this.rayLength,
-    //                     y: (this.player.position.y + 50) - Math.sin(rayAngle) * this.rayLength
-    //                 }
-
-    //                 this.rays.push([start, end])
-    //             }
-    //         }
-
-    //         draw() {
-    //             for (let i = 0; i < this.rayCount; i++) {
-    //                 let end = this.rays[i][1]
-
-    //                 if (this.readings[i]) {
-    //                     end = this.readings[i]
-    //                 }
-
-    //                 ctx.beginPath()
-    //                 ctx.lineWidth = 2
-    //                 ctx.strokeStyle = 'yellow'
-    //                 ctx.moveTo(this.rays[i][0].x, this.rays[i][0].y)
-    //                 ctx.lineTo(end.x, end.y)
-    //                 ctx.stroke()
-
-    //                 ctx.beginPath()
-    //                 ctx.lineWidth = 2
-    //                 ctx.strokeStyle = 'black'
-    //                 ctx.moveTo(this.rays[i][1].x, this.rays[i][1].y)
-    //                 ctx.lineTo(end.x, end.y)
-    //                 ctx.stroke()
-    //             }
-    //         }
-    //     }
-
         class Floor {
             constructor({ position, velocity, imageSrc }) {
                 this.position = position
@@ -629,58 +348,6 @@ function GameCanvas() {
                 this.draw()
             }
         }
-
-    //     const player = new Sprite({
-    //         position: {
-    //             x: 0,
-    //             y: 0
-    //         },
-    //         velocity: {
-    //             x: 0,
-    //             y: 0
-    //         },
-    //         imageSrc: fullIdle,
-    //         scale: 1,
-    //         framesMax: 9
-    //     })
-
-    //     let maxStartObstacles = 5
-
-    //     function spawnInitialObstacles() {
-    //         for (let i = 0; i < maxStartObstacles; i++) {
-    //             spawnObstacle()
-    //         }
-    //     }
-
-    //     spawnInitialObstacles()
-
-    //     function spawnObstacle() {
-    //         let obstacleX = (Math.floor(Math.random() * canvas.width)) + canvas.width
-
-    //         if (obstacles.length) {
-    //             let lastObstacleX = obstacles[obstacles.length - 1].position.x
-
-    //             while (obstacleX - lastObstacleX < 200 && obstacleX - lastObstacleX > 100) {
-    //                 obstacleX += 100
-    //             }
-    //         }
-
-    //         obstacles.push(new Obstacle({
-    //             position: {
-    //                 x: obstacleX,
-    //                 y: 424
-    //             },
-    //             velocity: {
-    //                 x: -1.4,
-    //                 y: 0
-    //             },
-    //             imageSrc: fire,
-    //             scale: 2,
-    //             framesMax: 8
-    //         }))
-
-    //         obstacleId++
-    //     }
 
         let mainFloorsArr = []
         let xPosition1 = 954
@@ -768,55 +435,6 @@ function GameCanvas() {
         }
 
         let lastKey
-
-    //     function animate() {
-    //         window.requestAnimationFrame(animate)
-    //         ctx.fillStyle = 'black'
-    //         ctx.fillRect(0, 0, canvas.width, canvas.height)
-    //         background.update()
-    //         player.update(obstacles)
-
-    //         for (let i = 0; i < obstacles.length; i++) {
-    //             let fire = obstacles[i]
-    //             fire.update()
-
-    //             // checkCollisions(fire)
-    //         }
-
-    //         player.velocity.x = 0
-
-    //         if (keys.a.pressed && lastKey === 'a') {
-    //             if (player.position.x + player.width + player.velocity.x < 100) {
-    //                 player.velocity.x = 0
-    //             }
-    //             else player.velocity.x = -2
-    //         }
-    //         else if (keys.d.pressed && lastKey === 'd') {
-    //             if (player.position.x + player.width + player.velocity.x >= canvas.width - 10) {
-    //                 player.velocity.x = 0
-    //             }
-    //             else player.velocity.x = 2
-    //         }
-
-
-    //         function checkCollisions(fire) {
-    //             let playerLeft = player.hitbox.position.x
-    //             let playerRight = player.hitbox.position.x + player.hitbox.width
-    //             let playerTop = player.hitbox.position.y
-    //             let playerBottom = player.hitbox.position.y + player.hitbox.height
-
-    //             let obstacleLeft = fire.hitbox.position.x
-    //             let obstacleRight = fire.hitbox.position.x + fire.hitbox.width
-    //             let obstacleTop = fire.hitbox.position.y
-    //             let obstacleBottom = fire.hitbox.position.y + fire.hitbox.height
-
-    //             if ((playerRight >= obstacleLeft && playerRight <= obstacleRight)) {
-    //                 console.log("hit", fire.obstacleId)
-    //             }
-    //         }
-    //     }
-
-    //     animate()
 
         function drawFloor() {
             window.requestAnimationFrame(drawFloor)
