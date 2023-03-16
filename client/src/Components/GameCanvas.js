@@ -11,17 +11,29 @@ import fire from '../assets/fire_fx_v1.0/png/orange/loops/burning_loop_1.png'
 import './GameCanvas.css'
 
 function GameCanvas() {
-    const canvasRef = useRef(null)
+    const gameCanvasRef = useRef(null)
+    const visualizerCanvasRef = useRef(null)
+    const simulationStarted = useRef(false)
 
     useEffect(() => {
-        let canvas = canvasRef.current
-        let ctx = canvas.getContext("2d")
+        let gameCanvas = gameCanvasRef.current
+        let gameCtx = gameCanvas.getContext("2d")
 
-        canvas.height = 576
-        canvas.width = 1024
 
-        ctx.fillStyle = 'black'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        gameCanvas.height = 576
+        gameCanvas.width = 1024
+
+        gameCtx.fillStyle = 'black'
+        gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height)
+
+        let visualizerCanvas = visualizerCanvasRef.current
+        let visualizerCtx = visualizerCanvas.getContext("2d")
+
+        visualizerCanvas.height = 576
+        visualizerCanvas.width = 576
+
+        visualizerCtx.fillStyle = 'black'
+        visualizerCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height)
 
         const gravity = 0.2
 
@@ -35,7 +47,7 @@ function GameCanvas() {
             }
 
             draw() {
-                ctx.drawImage(this.image, this.position.x, this.position.y)
+                gameCtx.drawImage(this.image, this.position.x, this.position.y)
             }
 
             update() {
@@ -51,8 +63,219 @@ function GameCanvas() {
             imageSrc: backgroundMain
         })
 
+        const keys = {
+            a: {
+                pressed: false
+            },
+            d: {
+                pressed: false
+            }
+        }
+
+        let lastKey
+
+        class Level {
+            constructor(inputCount, outputCount) {
+                this.inputs = new Array(inputCount)
+                this.outputs = new Array(outputCount)
+                this.biases = new Array(outputCount)
+                this.weights = []
+
+                for (let i = 0; i < inputCount; i++) {
+                    this.weights[i] = new Array(outputCount)
+                }
+
+                Level.randomize(this)
+            }
+
+            static randomize(level) {
+                for (let i = 0; i < level.inputs.length; i++) {
+                    for (let j = 0; j < level.outputs.length; j++) {
+                        level.weights[i][j] = Math.random() * 2 - 1
+                    }
+                }
+
+                for (let i = 0; i < level.biases.length; i++) {
+                    level.biases[i] = Math.random() * 2 - 1
+                }
+            }
+
+            static feedForward(givenInputs, level) {
+                for (let i = 0; i < level.inputs.length; i++) {
+                    level.inputs[i] = givenInputs[i]
+                }
+
+                for (let i = 0; i < level.outputs.length; i++) {
+                    let sum = 0
+                    for (let j = 0; j < level.inputs.length; j++) {
+                        sum += level.inputs[j] * level.weights[j][i]
+                    }
+
+                    if (sum > level.biases[i]) {
+                        level.outputs[i] = 1
+                    }
+                    else {
+                        level.outputs[i] = 0
+                    }
+                }
+
+                return level.outputs
+            }
+        }
+
+        class NeuralNetwork {
+            constructor(neuronCounts) {
+                this.levels = []
+
+                for (let i = 0; i < neuronCounts.length - 1; i++) {
+                    this.levels.push(new Level(
+                        neuronCounts[i], neuronCounts[i + 1]
+                    ))
+                }
+            }
+
+            static feedForward(givenInputs, network) {
+                let outputs = Level.feedForward(
+                    givenInputs, network.levels[0]
+                )
+
+                for (let i = 1; i < network.levels.length; i++) {
+                    outputs = Level.feedForward(
+                        outputs, network.levels[i]
+                    )
+                }
+
+                return outputs
+            }
+
+            static mutate(network, amount = 1) {
+                network.levels.forEach(level => {
+                    for (let i = 0; i < level.biases.length; i++) {
+                        level.biases[i] = lerp(level.biases[i], Math.random() * 2 - 1, amount)
+                    }
+                    for (let i = 0; i < level.weights.length; i++) {
+                        for (let j = 0; j < level.weights[i].length; j++) {
+                            level.weights[i][j] = lerp(level.weights[i][j], Math.random() * 2 - 1, amount)
+                        }
+                    }
+                })
+            }
+        }
+
+        let currentTimes = 0
+
+        class Visualizer{
+            static drawNetwork(ctx, network) {
+                const margin = 50
+                const left = margin
+                const top = margin
+                const width = ctx.canvas.width - margin * 2
+                const height = ctx.canvas.height - margin * 2
+
+                const levelHeight = height / network.levels.length
+
+
+                for (let i = network.levels.length - 1; i >= 0; i--) {
+                    const levelTop =
+                    top +
+                    lerp(height - levelHeight, 0, network.levels.length == 1 ? 0.5 : i / (network.levels.length - 1))
+
+                    Visualizer.drawLevel(
+                        ctx, network.levels[i], left, levelTop, width, levelHeight,
+                        i == network.levels.length - 1 ? ['🠈','🠉', '🠊','🠋'] : []
+                    )
+                }
+            }
+
+            static drawLevel(ctx, level, left, top, width, height, outputLabels) {
+                const right = left + width
+                const bottom = top + height
+                const {inputs, outputs, weights, biases} = level
+
+                if (currentTimes <= 3) {
+                    for (let i = 0; i < inputs.length; i++) {
+                        for (let j = 0; j < outputs.length; j++) {
+                            ctx.beginPath()
+                            ctx.moveTo(
+                                Visualizer.getNodeX(inputs, i, left, right),
+                                bottom
+                            );
+                            ctx.lineTo(
+                                Visualizer.getNodeX(outputs, j, left, right),
+                                top
+                            );
+                            ctx.lineWidth = 1
+                            ctx.strokeStyle = 'blue'
+                            ctx.stroke()
+                        }
+                    }
+
+                    currentTimes++
+                }
+
+                const nodeRadius = 18
+                for (let i = 0; i < inputs.length; i++) {
+                    const x = Visualizer.getNodeX(inputs, i, left, right)
+                    ctx.beginPath()
+                    ctx.arc(x, bottom, nodeRadius * 0.8, 0, Math.PI * 2)
+                    ctx.strokeStyle = 'white'
+                    ctx.lineWidth = 2
+                    ctx.stroke()
+                    ctx.fillStyle = "black"
+                    ctx.fill()
+                    ctx.beginPath()
+                    ctx.arc(x, bottom, nodeRadius * 0.6, 0, Math.PI * 2)
+                    ctx.fillStyle = getRGBA(inputs[i])
+                    ctx.fill()
+                }
+
+                for (let i = 0; i < outputs.length; i++) {
+                    const x = Visualizer.getNodeX(outputs, i, left, right)
+                    ctx.beginPath()
+                    ctx.arc(x, top, nodeRadius, 0, Math.PI * 2)
+                    ctx.fillStyle = "black"
+                    ctx.fill()
+                    ctx.beginPath()
+                    ctx.arc(x, top, nodeRadius * 0.6, 0, Math.PI * 2)
+                    ctx.fillStyle = getRGBA(outputs[i])
+                    ctx.fill()
+
+                    ctx.beginPath()
+                    ctx.lineWidth = 2
+                    ctx.arc(x, top, nodeRadius * 0.8, 0, Math.PI * 2)
+                    ctx.strokeStyle = getRGBA(biases[i])
+                    ctx.stroke()
+
+                    if (outputLabels[i]) {
+                        ctx.beginPath()
+                        ctx.textAlign = "center"
+                        ctx.textBaseline = "middle"
+                        ctx.fillStyle = "black"
+                        ctx.strokeStyle = "white"
+                        ctx.font = (nodeRadius * 1.5) + "px Arial"
+                        ctx.fillText(outputLabels[i], x, top + nodeRadius * 0.1)
+                        ctx.lineWidth = 0.5
+                        ctx.strokeText(outputLabels[i], x, top + nodeRadius * 0.1)
+                    }
+                }
+            }
+
+            static getNodeX(nodes,index,left,right){
+                return lerp(left, right, nodes.length == 1 ? 0.5 : index / (nodes.length - 1))
+            }
+        }
+
+        function getRGBA(value){
+            const alpha = Math.abs(value)
+            const R = value < 0 ? 0 : 255
+            const G = value < 0 ? 0 : 255
+            const B = value < 0 ? 0 : 255
+            return "rgba("+R+","+G+","+B+","+alpha+")"
+        }
+
+
         class Character {
-            constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0) {
+            constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0, brain = new NeuralNetwork([13, 10, 4])) {
                 this.x = x + offsetX
                 this.y = y + offsetY
                 this.width = width
@@ -73,11 +296,44 @@ function GameCanvas() {
                 this.frameRate = frameRate // animation frame rate
                 this.frameIndex = 0 // current frame to be displayed
                 this.frameTimer = 0 // timer to control the frame rate
+                this.currentJumps = 0
                 this.hitbox = {
                     x: this.x + this.hitboxOffsetX,
                     y: this.y + this.hitboxOffsetY,
                     width: 70,
                     height: this.frameHeight
+                }
+
+                this.brain = brain
+                this.distance = 0
+            }
+
+            moveLeft() {
+                this.velX = 0
+                if (this.x + this.width + this.velX < 100) {
+                    this.velX = 0
+                }
+                else this.velX = -2
+            }
+
+            moveRight() {
+                this.velX = 0
+                if (this.x + this.width + this.velX >= gameCanvas.width - 10) {
+                    this.velX = 0
+                }
+                else this.velX = 2
+            }
+
+            jump() {
+                if (this.currentJumps == 0) {
+                    this.velY = -10
+                    this.currentJumps++
+                }
+            }
+
+            duck() {
+                if (this.y + this.height + this.velY < gameCanvas.height - 88) {
+                    this.velY = 4
                 }
             }
 
@@ -88,6 +344,8 @@ function GameCanvas() {
 
                 const startX = this.x + this.hitboxOffsetX + this.hitbox.width / 2
                 const startY = this.y + this.hitboxOffsetY + this.hitbox.height / 2
+
+                let rayLengthsNormalized = []
 
                 for (let angle = -180; angle <= 0; angle += 15) {
                     const radians = angle * (Math.PI / 180)
@@ -105,24 +363,33 @@ function GameCanvas() {
                         }
                     }
 
-                    ctx.strokeStyle = rayColor
-                    ctx.beginPath()
-                    ctx.moveTo(startX, startY)
-                    ctx.lineTo(endX, endY)
-                    ctx.stroke()
+                    gameCtx.strokeStyle = rayColor
+                    gameCtx.lineWidth = 2
+                    gameCtx.beginPath()
+                    gameCtx.moveTo(startX, startY)
+                    gameCtx.lineTo(endX, endY)
+                    gameCtx.stroke()
 
                     if (closestIntersection) {
-                        ctx.strokeStyle = rayFill
-                        ctx.beginPath()
-                        ctx.moveTo(startX, startY)
-                        ctx.lineTo(closestIntersection.x, closestIntersection.y)
-                        ctx.stroke()
+                        gameCtx.strokeStyle = rayFill
+                        gameCtx.lineWidth = 2
+                        gameCtx.beginPath()
+                        gameCtx.moveTo(endX, endY)
+                        gameCtx.lineTo(closestIntersection.x, closestIntersection.y)
+                        gameCtx.stroke()
+
+                        // Normalize the ray length and add it to the array
+                        rayLengthsNormalized.push(1 - (closestDistance / rayLength));
+                    } else {
+                        rayLengthsNormalized.push(0);
                     }
                 }
+
+                return rayLengthsNormalized;
             }
 
             draw() {
-                ctx.drawImage(
+                gameCtx.drawImage(
                     this.image,
                     this.frameIndex * this.frameWidth,
                     0,
@@ -135,9 +402,9 @@ function GameCanvas() {
                 )
 
                 // draw hitbox
-                ctx.strokeStyle = 'red'
-                ctx.lineWidth = 2
-                ctx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
+                gameCtx.strokeStyle = 'red'
+                gameCtx.lineWidth = 2
+                gameCtx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
 
                 // Update the frame timer and index
                 this.frameTimer++
@@ -155,10 +422,11 @@ function GameCanvas() {
                 this.x += this.velX
                 this.y += this.velY
 
-                if (this.y + this.height > canvas.height - 82) {
-                    this.y = (canvas.height - 82) - this.height
+                if (this.y + this.height > gameCanvas.height - 82) {
+                    this.y = (gameCanvas.height - 82) - this.height
                     this.velY = 0
                     this.onGround = true
+                    this.currentJumps = 0
                 }
                 else this.onGround = false
 
@@ -202,6 +470,9 @@ function GameCanvas() {
             return liangBarskyIntersection(x0, y0, x1, y1, left, top, right, bottom)
         }
 
+        function lerp(A, B, t){
+            return A + (B - A) * t
+        }
 
         class Obstacle {
             constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0) {
@@ -233,7 +504,7 @@ function GameCanvas() {
             }
 
             draw() {
-                ctx.drawImage(
+                gameCtx.drawImage(
                     this.image,
                     this.frameIndex * this.frameWidth,
                     0,
@@ -246,9 +517,9 @@ function GameCanvas() {
                 )
 
                 // draw hitbox
-                ctx.strokeStyle = 'red'
-                ctx.lineWidth = 2
-                ctx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
+                gameCtx.strokeStyle = 'red'
+                gameCtx.lineWidth = 2
+                gameCtx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
 
                 // Update the frame timer and index
                 this.frameTimer++
@@ -265,7 +536,7 @@ function GameCanvas() {
                     // this.x = canvas.width
                     // this.height = Math.floor(Math.random() * 100) + 50
                     this.height = 50
-                    this.y = canvas.height - this.height
+                    this.y = gameCanvas.height - this.height
                 }
 
                 // Update hitbox
@@ -274,89 +545,511 @@ function GameCanvas() {
             }
         }
 
-        const character = new Character(50, canvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
-        const obstacles = []
+        const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
+        let obstacles = []
+
+        const n = 10
+        const generations = 10
+
+        function generateCharacters(n) {
+            const characters = []
+
+            for (let i = 0; i < n; i++) {
+                characters.push(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0))
+            }
+
+            return characters
+        }
+
+        function generateMutatedCharacters(n, bestNeuralNetwork) {
+            const characters = [];
+            let newChars = [];
+
+            for (let i = 1; i < n; i++) {
+              const clonedBrain = JSON.parse(JSON.stringify(bestNeuralNetwork));
+              characters.push(
+                new Character(
+                  50,
+                  gameCanvas.height - 100,
+                  50,
+                  100,
+                  1,
+                  fullIdle,
+                  9,
+                  12,
+                  0,
+                  0,
+                  32,
+                  0,
+                  clonedBrain
+                )
+              );
+            }
+
+            for (let i = 0; i < characters.length; i++) {
+              let char = characters[i];
+
+              NeuralNetwork.mutate(char.brain, 0.3);
+
+              newChars.push(char);
+            }
+
+            return newChars;
+          }
+
+        //   {
+        //     "levels": [
+        //         {
+        //             "inputs": [
+        //                 0.7373947738071046,
+        //                 0.7281310644712933,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0.8742561939739276,
+        //                 0.8973306123068727,
+        //                 0.9079491452518295,
+        //                 0.9110857020667583
+        //             ],
+        //             "outputs": [
+        //                 1,
+        //                 0,
+        //                 0,
+        //                 1,
+        //                 1,
+        //                 1,
+        //                 1,
+        //                 0,
+        //                 0,
+        //                 0
+        //             ],
+        //             "biases": [
+        //                 -0.5187126559108288,
+        //                 0.4336440443887127,
+        //                 0.7286508897278111,
+        //                 -0.47685634754543693,
+        //                 -0.03708091157757326,
+        //                 0.43920511278880003,
+        //                 -0.6181612052010678,
+        //                 -0.32457357728804614,
+        //                 -0.31822760420554996,
+        //                 0.520270958991225
+        //             ],
+        //             "weights": [
+        //                 [
+        //                     -0.8487542202452489,
+        //                     0.39652639217417224,
+        //                     -0.7997488675106045,
+        //                     -0.05243088622892042,
+        //                     0.5684035307690205,
+        //                     -0.3418127924590161,
+        //                     0.9778155616359216,
+        //                     -0.2679672415241899,
+        //                     -0.6955876012765729,
+        //                     -0.6067770501118745
+        //                 ],
+        //                 [
+        //                     0.7756170160306637,
+        //                     0.17574875792362102,
+        //                     -0.8614338829817676,
+        //                     -0.20630777555940616,
+        //                     -0.5045981369391008,
+        //                     0.8962496024270193,
+        //                     -0.5898579374285636,
+        //                     -0.406757604904905,
+        //                     -0.2552951862234134,
+        //                     -0.014755517363155779
+        //                 ],
+        //                 [
+        //                     0.6783110779182231,
+        //                     -0.06735090888322395,
+        //                     -0.2092353119850908,
+        //                     0.7767512517384276,
+        //                     0.46197450387923167,
+        //                     0.28276385159785616,
+        //                     0.1027869328822418,
+        //                     0.09782363514942158,
+        //                     0.10155109123302895,
+        //                     -0.6220060446879592
+        //                 ],
+        //                 [
+        //                     0.053086771287503165,
+        //                     0.8885889186520559,
+        //                     -0.272844503096778,
+        //                     0.027295208090670806,
+        //                     -0.12860968592997002,
+        //                     0.1215309784968226,
+        //                     0.4658086243467537,
+        //                     -0.3453314946737797,
+        //                     -0.133663126138045,
+        //                     -0.15818893561578198
+        //                 ],
+        //                 [
+        //                     -0.37086927865845504,
+        //                     -0.31513343189989146,
+        //                     -0.6572306765847686,
+        //                     -0.46476513515354917,
+        //                     -0.7913829001301431,
+        //                     0.7284349745635572,
+        //                     -0.8443681321895327,
+        //                     -0.6955648206199814,
+        //                     0.4951601610578451,
+        //                     0.5585137476570667
+        //                 ],
+        //                 [
+        //                     0.16008780875464534,
+        //                     -0.007401633117357597,
+        //                     0.6757079458346262,
+        //                     0.3423284099724773,
+        //                     0.23611499438552075,
+        //                     -0.12930385984248474,
+        //                     0.5716078601685869,
+        //                     -0.32468577814278204,
+        //                     0.8067758966368439,
+        //                     -0.7002121842739958
+        //                 ],
+        //                 [
+        //                     -0.2332260916460445,
+        //                     -0.06263512390657544,
+        //                     0.728922645528878,
+        //                     0.24946404038915626,
+        //                     0.1716922120716604,
+        //                     -0.05291589799242438,
+        //                     -0.5354181067380569,
+        //                     0.355332398530933,
+        //                     0.7948280681047861,
+        //                     -0.8602541676424378
+        //                 ],
+        //                 [
+        //                     -0.46097537880245687,
+        //                     -0.5151461142863507,
+        //                     0.006152302871391346,
+        //                     0.22778321285214254,
+        //                     0.4386603859841712,
+        //                     -0.09337768271440713,
+        //                     0.5438915323268223,
+        //                     0.14602035954494397,
+        //                     0.8079767832027912,
+        //                     -0.3835462991303419
+        //                 ],
+        //                 [
+        //                     -0.37988631967375736,
+        //                     -0.23566280469191872,
+        //                     0.5938992900132646,
+        //                     0.058066034354769314,
+        //                     -0.0013979122955328493,
+        //                     0.5020467740523233,
+        //                     -0.21053788516050498,
+        //                     0.4573808254644677,
+        //                     0.8911022388815644,
+        //                     0.5807131778621379
+        //                 ],
+        //                 [
+        //                     -0.2777327022381489,
+        //                     -0.7473184993245492,
+        //                     -0.1793716768287612,
+        //                     0.469431856748623,
+        //                     0.2668190590833567,
+        //                     -0.45576594282500094,
+        //                     -0.1272109318774076,
+        //                     -0.6041859157638865,
+        //                     -0.11674676527270283,
+        //                     -0.21591691565004165
+        //                 ],
+        //                 [
+        //                     -0.04115773780571681,
+        //                     0.4455485711247632,
+        //                     0.4887044318622431,
+        //                     0.6375151987828588,
+        //                     -0.45776841096778986,
+        //                     0.4580508366476699,
+        //                     -0.29158854679933344,
+        //                     -0.14753062605145617,
+        //                     -0.3127148530196574,
+        //                     -0.8246790547702227
+        //                 ],
+        //                 [
+        //                     -0.4478080500310046,
+        //                     -0.6967701651124579,
+        //                     -0.4879558267012006,
+        //                     0.10226799041529197,
+        //                     -0.08924819449727597,
+        //                     0.3187035043476804,
+        //                     0.6605296333937545,
+        //                     -0.5259014431081542,
+        //                     0.4947929674737936,
+        //                     0.8615828267488471
+        //                 ],
+        //                 [
+        //                     0.2549620839968913,
+        //                     0.3271820465816778,
+        //                     0.5382086582338949,
+        //                     -0.04796601112921381,
+        //                     0.4863873817886509,
+        //                     0.8440370527993019,
+        //                     -0.23773229501744114,
+        //                     -0.4003177532057307,
+        //                     0.21007577892361695,
+        //                     -0.2364642900399719
+        //                 ]
+        //             ]
+        //         },
+        //         {
+        //             "inputs": [
+        //                 1,
+        //                 0,
+        //                 0,
+        //                 1,
+        //                 1,
+        //                 1,
+        //                 1,
+        //                 0,
+        //                 0,
+        //                 0
+        //             ],
+        //             "outputs": [
+        //                 1,
+        //                 0,
+        //                 0,
+        //                 0
+        //             ],
+        //             "biases": [
+        //                 -0.5766329227257196,
+        //                 -0.8297216633211455,
+        //                 -0.1444109313009232,
+        //                 0.6702476360068601
+        //             ],
+        //             "weights": [
+        //                 [
+        //                     0.30398547100072193,
+        //                     -0.7665039035506507,
+        //                     0.21328329654336828,
+        //                     0.14525310531671798
+        //                 ],
+        //                 [
+        //                     0.296707152692418,
+        //                     -0.44237862978626896,
+        //                     -0.2952875685477292,
+        //                     0.3590575222741884
+        //                 ],
+        //                 [
+        //                     0.3584022017545518,
+        //                     0.6240202314049543,
+        //                     -0.7396743169791866,
+        //                     -0.6005203138424914
+        //                 ],
+        //                 [
+        //                     0.5339111531138043,
+        //                     0.7013374304937654,
+        //                     -0.38108141330102174,
+        //                     -0.13016617886234777
+        //                 ],
+        //                 [
+        //                     -0.4647731439243742,
+        //                     -0.5320280269272197,
+        //                     -0.8476267976805758,
+        //                     0.6684147217758643
+        //                 ],
+        //                 [
+        //                     -0.3927056523786825,
+        //                     -0.957184364552039,
+        //                     0.19885219912325905,
+        //                     0.5812004894633551
+        //                 ],
+        //                 [
+        //                     0.7701128409980502,
+        //                     0.42642979733767633,
+        //                     -0.3307218357208677,
+        //                     -0.6972781228344813
+        //                 ],
+        //                 [
+        //                     -0.3387295781244705,
+        //                     0.5450093538553459,
+        //                     -0.2765515441652203,
+        //                     -0.251165875457667
+        //                 ],
+        //                 [
+        //                     0.12011550448519817,
+        //                     0.6995451977618334,
+        //                     0.4915315763091164,
+        //                     0.38354320304354567
+        //                 ],
+        //                 [
+        //                     -0.22954691332123342,
+        //                     -0.224148423058881,
+        //                     -0.10176371959640662,
+        //                     -0.6410494769180961
+        //                 ]
+        //             ]
+        //         }
+        //     ]
+        // }
+
+        async function runSimulation(generations) {
+            let bestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
+            let initialCharacters = []
+
+            if (bestNeuralNetwork) {
+                initialCharacters = generateMutatedCharacters(n, JSON.parse(bestNeuralNetwork))
+
+                initialCharacters.unshift(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, JSON.parse(bestNeuralNetwork)))
+            }
+            else {
+                initialCharacters = generateCharacters(n)
+            }
+
+            for (let i = 0; i < generations; i++) {
+                let charactersArr = []
+                let findMaxArr = []
+
+                if (i === 0) charactersArr = [...initialCharacters]
+
+                if (i >= 1) {
+                    // for each generation, generate new mutated characters with each best brain
+                    let bestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
+                    charactersArr = [...generateMutatedCharacters(n, JSON.parse(bestNeuralNetwork))]
+
+                    charactersArr.unshift(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, JSON.parse(bestNeuralNetwork)))
+                }
+
+                for (let j = 0; j < n; j++) {
+                    let character = charactersArr[j]
+                    console.log("running simulation for character " + (j + 1) + " - generation " + (i + 1))
+
+                    resetGameState(character)
+
+                    let char = await gameLoop(character)
+                    findMaxArr.push(char)
+
+                    console.log(findMaxArr)
+                }
+
+                let maxDistance = -Infinity
+
+                for (let i = 0; i < findMaxArr.length; i++) {
+                    let character = findMaxArr[i]
+
+                    if (character.distance > maxDistance) {
+                        maxDistance = character.distance
+                        bestNeuralNetwork = character.brain
+                    }
+                }
+
+
+                if (localStorage.getItem('maxDistance')) {
+                    if (maxDistance > Number(localStorage.getItem('maxDistance'))) {
+                        localStorage.removeItem('bestNeuralNetwork')
+                        localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestNeuralNetwork))
+                        localStorage.setItem('maxDistance', maxDistance.toString())
+                    }
+                }
+                else if (!localStorage.getItem('maxDistance')) {
+                    localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestNeuralNetwork))
+                    localStorage.setItem('maxDistance', maxDistance.toString())
+                }
+
+                console.log(maxDistance)
+            }
+        }
+
+        if (!simulationStarted.current) {
+            simulationStarted.current = true;
+            runSimulation(generations)
+        }
+
 
         function createObstacle() {
-            const x = canvas.width
-            const y = canvas.height - 166
-            const width = 50
-            const height = 50
-            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26)
-            obstacles.push(obstacle)
+            const minWidth = 150;
+            const maxWidth = minWidth + 100; // Adjust this value to control the maximum distance between obstacles
+            const x = gameCanvas.width + Math.random() * ((maxWidth - minWidth) + minWidth);
+            const y = gameCanvas.height - 166;
+            const width = 50;
+            const height = 50;
+            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26);
+            obstacles.push(obstacle);
         }
 
-        const keys = {
-            a: {
-                pressed: false
-            },
-            d: {
-                pressed: false
-            }
-        }
+        function gameLoop(character) {
+            return new Promise((resolve) => {
+                function loop() {
+                    gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height)
+                    background.update()
 
-        let lastKey
+                    character.draw()
+                    const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s))
+                    character.update()
 
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-            background.update()
-            character.draw()
-            character.drawSensors(obstacles)
-            character.update()
+                    Visualizer.drawNetwork(visualizerCtx, character.brain)
 
-            character.velX = 0
-
-            if (keys.a.pressed && lastKey === 'a') {
-                if (character.x + character.width + character.velX < 100) {
                     character.velX = 0
+
+                    const outputs = NeuralNetwork.feedForward(rayData, character.brain)
+
+                    if (outputs[0] === 1) {
+                        character.moveLeft()
+                    }
+                    if (outputs[1] === 1) {
+                        character.jump()
+                    }
+                    if (outputs[2] === 1) {
+                        character.moveRight()
+                    }
+                    if (outputs[3] === 1) {
+                        character.duck()
+                    }
+
+
+                    if (
+                        obstacles.length === 0 ||
+                        (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) <
+                        gameCanvas.width - (Math.floor(Math.random() * 300) + 100)
+                    ) {
+                        createObstacle();
+                    }
+
+                    let collisionDetected = false
+
+                    for (const [index, obstacle] of obstacles.entries()) {
+                        obstacle.draw()
+                        obstacle.update()
+
+                        if (
+                            character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
+                            character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
+                            character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
+                            character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
+                        ) {
+                            // Collision detected
+                            collisionDetected = true
+                            break
+                        }
+
+                        if (obstacle.x + obstacle.width < 0) {
+                            obstacles.splice(index, 1)
+                        }
+                    }
+
+                    if (!collisionDetected && character.distance <= 10000) {
+                        requestAnimationFrame(loop)
+                    }
+                    else {
+                        requestAnimationFrame(() => resolve(character))
+                    }
+
+                    character.distance++
                 }
-                else character.velX = -2
-            }
-            else if (keys.d.pressed && lastKey === 'd') {
-                if (character.x + character.width + character.velX >= canvas.width - 10) {
-                    character.velX = 0
-                }
-                else character.velX = 2
-            }
 
-            if (obstacles.length === 0 || (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) < canvas.width - 300) {
-                createObstacle()
-            }
-
-            let collisionDetected = false
-
-            for (const [index, obstacle] of obstacles.entries()) {
-                obstacle.draw()
-                obstacle.update()
-
-                if (character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
-                    character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
-                    character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
-                    character.hitbox.y + character.hitbox.height > obstacle.hitbox.y) {
-                    // Collision detected
-                    collisionDetected = true
-                    break
-                }
-
-                if (obstacle.x + obstacle.width < 0) {
-                    obstacles.splice(index, 1)
-                }
-            }
-
-            if (!collisionDetected) {
-                requestAnimationFrame(gameLoop)
-            }
+                loop()
+            })
         }
 
-
-        document.addEventListener('keydown', e => {
-            if (e.code === 'Space' && character.onGround) {
-                character.velY = -15
-                character.onGround = false
-            }
-        })
-
-        gameLoop()
+        function resetGameState() {
+            obstacles = []
+        }
 
         class Floor {
             constructor({ position, velocity, imageSrc }) {
@@ -369,7 +1062,7 @@ function GameCanvas() {
             }
 
             draw() {
-                ctx.drawImage(this.image, this.position.x, this.position.y)
+                gameCtx.drawImage(this.image, this.position.x, this.position.y)
             }
 
             update() {
@@ -481,96 +1174,83 @@ function GameCanvas() {
 
         drawFloor()
 
-        window.addEventListener('keydown', (event) => {
-            switch (event.key) {
-                case 'a':
-                    keys.a.pressed = true
-                    lastKey = 'a'
-                    break
-                case 'd':
-                    keys.d.pressed = true
-                    lastKey = 'd'
-                    break
-                case 'w':
-                    character.velY = -9
-                    break
-                case 's':
-                    if (character.y + character.height + character.velY < canvas.height - 88) {
-                        character.velY = 4
-                    }
-                    break
-                case 'A':
-                    keys.a.pressed = true
-                    lastKey = 'a'
-                    break
-                case 'D':
-                    keys.d.pressed = true
-                    lastKey = 'd'
-                    break
-                case 'W':
-                    if (character.currentJumps < 2) {
-                        if (character.currentJumps === 1) character.velY = -6
-                        else character.velY = -8
-                        character.currentJumps++
-                    }
-                    break
-                case 'S':
-                    if (character.position.y + character.height + character.velY < canvas.height - 88) {
-                        character.velY = 4
-                    }
-                    break
-                case 'ArrowLeft':
-                    keys.a.pressed = true
-                    lastKey = 'a'
-                    break
-                case 'ArrowRight':
-                    keys.d.pressed = true
-                    lastKey = 'd'
-                    break
-                case 'ArrowUp':
-                    if (character.currentJumps < 2) {
-                        if (character.currentJumps === 1) character.velY = -6
-                        else character.velY = -8
-                        character.currentJumps++
-                    }
-                    break
-                case 'ArrowDown':
-                    if (character.y + character.height + character.velY < canvas.height - 88) {
-                        character.velY = 4
-                    }
-                    break
-            }
-        })
+        // window.addEventListener('keydown', (event) => {
+        //     switch (event.key) {
+        //         case 'a':
+        //             keys.a.pressed = true
+        //             lastKey = 'a'
+        //             break
+        //         case 'd':
+        //             keys.d.pressed = true
+        //             lastKey = 'd'
+        //             break
+        //         case 'w':
+        //             character.jump()
+        //             break
+        //         case 's':
+        //             character.duck()
+        //             break
+        //         case 'A':
+        //             keys.a.pressed = true
+        //             lastKey = 'a'
+        //             break
+        //         case 'D':
+        //             keys.d.pressed = true
+        //             lastKey = 'd'
+        //             break
+        //         case 'W':
+        //             character.jump()
+        //             break
+        //         case 'S':
+        //             character.duck()
+        //             break
+        //         case 'ArrowLeft':
+        //             keys.a.pressed = true
+        //             lastKey = 'a'
+        //             break
+        //         case 'ArrowRight':
+        //             keys.d.pressed = true
+        //             lastKey = 'd'
+        //             break
+        //         case 'ArrowUp':
+        //             character.jump()
+        //             break
+        //         case 'ArrowDown':
+        //             character.duck()
+        //             break
+        //     }
+        // })
 
-        window.addEventListener('keyup', (event) => {
-            switch (event.key) {
-                case 'a':
-                    keys.a.pressed = false
-                    break
-                case 'd':
-                    keys.d.pressed = false
-                    break
-                case 'A':
-                    keys.a.pressed = false
-                    break
-                case 'D':
-                    keys.d.pressed = false
-                    break
-                case 'ArrowLeft':
-                    keys.a.pressed = false
-                    break
-                case 'ArrowRight':
-                    keys.d.pressed = false
-                    break
-            }
-        })
+        // window.addEventListener('keyup', (event) => {
+        //     switch (event.key) {
+        //         case 'a':
+        //             keys.a.pressed = false
+        //             break
+        //         case 'd':
+        //             keys.d.pressed = false
+        //             break
+        //         case 'A':
+        //             keys.a.pressed = false
+        //             break
+        //         case 'D':
+        //             keys.d.pressed = false
+        //             break
+        //         case 'ArrowLeft':
+        //             keys.a.pressed = false
+        //             break
+        //         case 'ArrowRight':
+        //             keys.d.pressed = false
+        //             break
+        //     }
+        // })
 
     }, [])
 
 
     return (
         <div className="gameCanvasContainer">
-            <canvas id="gameCanvas" ref={canvasRef}/>
+            <canvas id="gameCanvas" ref={gameCanvasRef}/>
+            <canvas id="visualizerCanvas" ref={visualizerCanvasRef}/>
         </div>
     )
 }
