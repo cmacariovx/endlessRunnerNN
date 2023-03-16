@@ -556,8 +556,9 @@ function GameCanvas() {
             }
 
             storeBestNeuralNetwork() {
-                const bestCharacter = this.findBestCharacter();
-                const storedMaxDistance = localStorage.getItem('maxDistance');
+                const bestCharacter = this.findBestCharacter()
+                const storedMaxDistance = localStorage.getItem('maxDistance')
+                console.log(bestCharacter.distance)
 
                 // If there is no stored max distance or the current best character's distance is greater, update localStorage
                 if (!storedMaxDistance || bestCharacter.distance > parseInt(storedMaxDistance, 10)) {
@@ -607,7 +608,11 @@ function GameCanvas() {
 
             createNextGeneration() {
                 const bestCharacter = this.findBestCharacter()
-                const newCharacters = [bestCharacter]
+                const bestBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
+
+                const newBestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
+
+                const newCharacters = [newBestCharacter]
 
                 for (let i = 1; i < this.size; i++) {
                     const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
