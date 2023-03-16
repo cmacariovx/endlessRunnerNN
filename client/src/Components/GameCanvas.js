@@ -289,6 +289,10 @@ function GameCanvas() {
                 this.onGround = true
                 this.image = new Image()
                 this.image.src = imageSrc
+                this.imageLoaded = false;
+                this.image.addEventListener('load', () => {
+                  this.imageLoaded = true;
+                });
                 this.frameCount = frameCount // total number of frames in the sprite sheet
                 this.frameWidth = this.image.width / frameCount // frame width within the sprite sheet
                 this.frameHeight = this.image.height // frame height within the sprite sheet
@@ -300,7 +304,7 @@ function GameCanvas() {
                     x: this.x + this.hitboxOffsetX,
                     y: this.y + this.hitboxOffsetY,
                     width: 70,
-                    height: this.frameHeight
+                    height: 100
                 }
 
                 this.brain = brain
@@ -388,17 +392,19 @@ function GameCanvas() {
             }
 
             draw() {
-                gameCtx.drawImage(
-                    this.image,
-                    this.frameIndex * this.frameWidth,
-                    0,
-                    this.frameWidth,
-                    this.frameHeight,
-                    this.x,
-                    this.y,
-                    this.frameWidth * this.scale,
-                    this.frameHeight * this.scale
-                )
+                if (this.imageLoaded) {
+                    gameCtx.drawImage(
+                        this.image,
+                        this.frameIndex * this.frameWidth,
+                        0,
+                        this.frameWidth,
+                        this.frameHeight,
+                        this.x,
+                        this.y,
+                        this.frameWidth * this.scale,
+                        this.frameHeight * this.scale
+                    )
+                }
 
                 // draw hitbox
                 gameCtx.strokeStyle = 'red'
@@ -583,7 +589,7 @@ function GameCanvas() {
 
                     for (let i = 1; i < this.size; i++) {
                         const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
-                        NeuralNetwork.mutate(mutatedBrain, 0.2)
+                        NeuralNetwork.mutate(mutatedBrain, 0.24)
                         const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
                         this.characters.push(character)
                     }
@@ -607,20 +613,21 @@ function GameCanvas() {
             }
 
             createNextGeneration() {
-                const bestCharacter = this.findBestCharacter()
-                const bestBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
+                const storedBestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
 
-                const newBestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
+                const bestBrain = JSON.parse(storedBestNeuralNetwork, (_, value) => {
+                    return typeof value === 'string' && value.startsWith('function') ?
+                        Function.call(null, `return ${value}`)() : value;
+                })
 
-                const newCharacters = [newBestCharacter]
+                const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
+                this.characters[0] = bestCharacter
 
                 for (let i = 1; i < this.size; i++) {
                     const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
-                    NeuralNetwork.mutate(newBrain, 0.2)
-                    newCharacters.push(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain))
+                    NeuralNetwork.mutate(newBrain, 0.24)
+                    this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
                 }
-
-                this.characters = newCharacters
             }
         }
 
@@ -639,7 +646,7 @@ function GameCanvas() {
 
         async function runGenerations(generations) {
             const characterTemplate = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
-            const population = new Population(10, characterTemplate)
+            const population = new Population(25, characterTemplate)
 
             for (let generation = 0; generation < generations; generation++) {
                 console.log("Generation:", generation)
@@ -647,7 +654,7 @@ function GameCanvas() {
             }
         }
 
-        runGenerations(10)
+        runGenerations(25)
 
         function runCharacter(character) {
             return new Promise((resolve) => {
