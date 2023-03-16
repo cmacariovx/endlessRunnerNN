@@ -2,7 +2,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  color: #222222;
+  font-family: 'Inter';
+  color: #ffffff;
   letter-spacing: 0.2px;
   line-height: 1.25;
   font-weight: 400;

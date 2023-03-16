@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react"
 
-import backgroundMain from '../assets/parallax_demon_woods_pack/parallax_demon_woods_pack/layers/demonwoods.png'
+import backgroundMain from '../assets/demonwoodsmain.png'
 import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
 import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
 import fullIdle from '../assets/NightBorneCharacter/NightborneIdleMain.png'
@@ -19,7 +19,6 @@ function GameCanvas() {
         let gameCanvas = gameCanvasRef.current
         let gameCtx = gameCanvas.getContext("2d")
 
-
         gameCanvas.height = 576
         gameCanvas.width = 1024
 
@@ -32,7 +31,7 @@ function GameCanvas() {
         visualizerCanvas.height = 576
         visualizerCanvas.width = 576
 
-        visualizerCtx.fillStyle = 'black'
+        visualizerCtx.fillStyle = '#010409'
         visualizerCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height)
 
         const gravity = 0.2
@@ -205,7 +204,7 @@ function GameCanvas() {
                                 top
                             );
                             ctx.lineWidth = 1
-                            ctx.strokeStyle = 'blue'
+                            ctx.strokeStyle = 'lightblue'
                             ctx.stroke()
                         }
                     }
@@ -470,8 +469,8 @@ function GameCanvas() {
             return liangBarskyIntersection(x0, y0, x1, y1, left, top, right, bottom)
         }
 
-        function lerp(A, B, t){
-            return A + (B - A) * t
+        function lerp(a, b, t) {
+            return a + (b - a) * t
         }
 
         class Obstacle {
@@ -545,57 +544,615 @@ function GameCanvas() {
             }
         }
 
-        const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
         let obstacles = []
 
-        const n = 10
-        const generations = 10
+        class Population {
+            constructor(size, characterTemplate) {
+                this.size = size
+                this.characterTemplate = characterTemplate
+                this.characters = []
 
-        function generateCharacters(n) {
-            const characters = []
-
-            for (let i = 0; i < n; i++) {
-                characters.push(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0))
+                this.createInitialPopulation()
             }
 
-            return characters
+            storeBestNeuralNetwork() {
+                const bestCharacter = this.findBestCharacter();
+                const storedMaxDistance = localStorage.getItem('maxDistance');
+
+                // If there is no stored max distance or the current best character's distance is greater, update localStorage
+                if (!storedMaxDistance || bestCharacter.distance > parseInt(storedMaxDistance, 10)) {
+                    localStorage.setItem('maxDistance', bestCharacter.distance.toString())
+                    localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestCharacter.brain, (_, value) => {
+                        return typeof value === 'function' ? value.toString() : value
+                    }))
+                }
+            }
+
+            createInitialPopulation() {
+                const storedBestNeuralNetwork = localStorage.getItem('bestNeuralNetwork');
+
+                if (storedBestNeuralNetwork) {
+                    const bestBrain = JSON.parse(storedBestNeuralNetwork, (_, value) => {
+                        return typeof value === 'string' && value.startsWith('function') ?
+                            Function.call(null, `return ${value}`)() : value
+                    })
+
+                    const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
+                    this.characters.push(bestCharacter)
+
+                    for (let i = 1; i < this.size; i++) {
+                        const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
+                        NeuralNetwork.mutate(mutatedBrain, 0.2)
+                        const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
+                        this.characters.push(character)
+                    }
+                }
+                else {
+                    for (let i = 0; i < this.size; i++) {
+                        const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
+                        this.characters.push(character)
+                    }
+                }
+            }
+
+            findBestCharacter() {
+                let bestCharacter = this.characters[0];
+                for (const character of this.characters) {
+                    if (character.distance > bestCharacter.distance) {
+                        bestCharacter = character
+                    }
+                }
+                return bestCharacter
+            }
+
+            createNextGeneration() {
+                const bestCharacter = this.findBestCharacter()
+                const newCharacters = [bestCharacter]
+
+                for (let i = 1; i < this.size; i++) {
+                    const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
+                    NeuralNetwork.mutate(newBrain, 0.2)
+                    newCharacters.push(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain))
+                }
+
+                this.characters = newCharacters
+            }
         }
 
-        function generateMutatedCharacters(n, bestNeuralNetwork) {
-            const characters = [];
-            let newChars = [];
+        async function gameLoop(population) {
+            for (let i = 0; i < population.characters.length; i++) {
+                let character = population.characters[i]
 
-            for (let i = 1; i < n; i++) {
-              const clonedBrain = JSON.parse(JSON.stringify(bestNeuralNetwork));
-              characters.push(
-                new Character(
-                  50,
-                  gameCanvas.height - 100,
-                  50,
-                  100,
-                  1,
-                  fullIdle,
-                  9,
-                  12,
-                  0,
-                  0,
-                  32,
-                  0,
-                  clonedBrain
-                )
-              );
+                resetGameState()
+                console.log("   Character", i + ": ", character.brain.levels[1].biases)
+                await runCharacter(character)
+            }
+            population.storeBestNeuralNetwork()
+            population.createNextGeneration()
+        }
+
+
+        async function runGenerations(generations) {
+            const characterTemplate = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
+            const population = new Population(10, characterTemplate)
+
+            for (let generation = 0; generation < generations; generation++) {
+                console.log("Generation:", generation)
+                await gameLoop(population)
+            }
+        }
+
+        runGenerations(10)
+
+        function runCharacter(character) {
+            return new Promise((resolve) => {
+                function loop() {
+                    background.update()
+
+                    character.draw()
+                    const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s))
+                    character.update()
+
+                    Visualizer.drawNetwork(visualizerCtx, character.brain)
+
+                    character.velX = 0
+
+                    const outputs = NeuralNetwork.feedForward(rayData, character.brain)
+
+                    if (outputs[0] === 1) {
+                        character.moveLeft()
+                    }
+                    if (outputs[1] === 1) {
+                        character.jump()
+                    }
+                    if (outputs[2] === 1) {
+                        character.moveRight()
+                    }
+                    if (outputs[3] === 1) {
+                        character.duck()
+                    }
+
+
+                    if (
+                        obstacles.length === 0 ||
+                        (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) <
+                        gameCanvas.width - (Math.floor(Math.random() * 300) + 100)
+                    ) {
+                        createObstacle()
+                    }
+
+                    let collisionDetected = false
+
+                    for (const [index, obstacle] of obstacles.entries()) {
+                        obstacle.draw()
+                        obstacle.update()
+
+                        if (
+                            character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
+                            character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
+                            character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
+                            character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
+                        ) {
+                            // Collision detected
+                            collisionDetected = true
+                            break
+                        }
+
+                        if (obstacle.x + obstacle.width < 0) {
+                            obstacles.splice(index, 1)
+                        }
+                    }
+
+                    if (!collisionDetected && character.distance <= 10000) {
+                        requestAnimationFrame(loop)
+                    }
+                    else {
+                        requestAnimationFrame(() => resolve(character))
+                    }
+
+                    character.distance++
+                }
+
+                loop()
+            });
+        }
+
+        function createObstacle() {
+            const minWidth = 150;
+            const maxWidth = minWidth + 100; // Adjust this value to control the maximum distance between obstacles
+            const x = gameCanvas.width + Math.random() * ((maxWidth - minWidth) + minWidth);
+            const y = gameCanvas.height - 166;
+            const width = 50;
+            const height = 50;
+            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26);
+            obstacles.push(obstacle);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
+
+        // const n = 15
+        // const generations = 15
+
+        // function generateCharacters(n) {
+        //     const characters = []
+
+        //     for (let i = 0; i < n; i++) {
+        //         characters.push(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0))
+        //     }
+
+        //     return characters
+        // }
+
+        // function generateMutatedCharacters(n, bestNeuralNetwork) {
+        //     const characters = [];
+        //     let newChars = [];
+
+        //     for (let i = 1; i < n; i++) {
+        //       const clonedBrain = JSON.parse(JSON.stringify(bestNeuralNetwork));
+        //       characters.push(
+        //         new Character(
+        //           50,
+        //           gameCanvas.height - 100,
+        //           50,
+        //           100,
+        //           1,
+        //           fullIdle,
+        //           9,
+        //           12,
+        //           0,
+        //           0,
+        //           32,
+        //           0,
+        //           clonedBrain
+        //         )
+        //       );
+        //     }
+
+        //     for (let i = 0; i < characters.length; i++) {
+        //       let char = characters[i];
+
+        //       NeuralNetwork.mutate(char.brain, 0.2);
+
+        //       newChars.push(char);
+        //     }
+
+        //     return newChars;
+        //   }
+
+        // async function runSimulation(generations) {
+        //     let bestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
+        //     let initialCharacters = []
+
+        //     if (bestNeuralNetwork) {
+        //         initialCharacters = generateMutatedCharacters(n, JSON.parse(bestNeuralNetwork))
+
+        //         initialCharacters.unshift(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, JSON.parse(bestNeuralNetwork)))
+        //     }
+        //     else {
+        //         initialCharacters = generateCharacters(n)
+        //     }
+
+        //     for (let i = 0; i < generations; i++) {
+        //         let charactersArr = []
+        //         let findMaxArr = []
+
+        //         if (i === 0) charactersArr = [...initialCharacters]
+
+        //         if (i >= 1) {
+        //             // for each generation, generate new mutated characters with each best brain
+        //             let bestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
+        //             charactersArr = [...generateMutatedCharacters(n, JSON.parse(bestNeuralNetwork))]
+
+        //             charactersArr.unshift(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, JSON.parse(bestNeuralNetwork)))
+        //         }
+
+        //         for (let j = 0; j < n; j++) {
+        //             let character = charactersArr[j]
+        //             console.log("running simulation for character " + (j + 1) + " - generation " + (i + 1))
+
+        //             resetGameState(character)
+
+        //             let char = await gameLoop(character)
+        //             findMaxArr.push(char)
+
+        //             console.log(findMaxArr)
+        //         }
+
+        //         let maxDistance = -Infinity
+
+        //         for (let i = 0; i < findMaxArr.length; i++) {
+        //             let character = findMaxArr[i]
+
+        //             if (character.distance > maxDistance) {
+        //                 maxDistance = character.distance
+        //                 bestNeuralNetwork = character.brain
+        //             }
+        //         }
+
+
+        //         if (localStorage.getItem('maxDistance')) {
+        //             if (maxDistance > Number(localStorage.getItem('maxDistance'))) {
+        //                 localStorage.removeItem('bestNeuralNetwork')
+        //                 localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestNeuralNetwork))
+        //                 localStorage.setItem('maxDistance', maxDistance.toString())
+        //             }
+        //         }
+        //         else if (!localStorage.getItem('maxDistance')) {
+        //             localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestNeuralNetwork))
+        //             localStorage.setItem('maxDistance', maxDistance.toString())
+        //         }
+
+        //         console.log(maxDistance)
+        //     }
+        // }
+
+        // if (!simulationStarted.current) {
+        //     simulationStarted.current = true;
+        //     runSimulation(generations)
+        // }
+
+
+        // function createObstacle() {
+        //     const minWidth = 150;
+        //     const maxWidth = minWidth + 100; // Adjust this value to control the maximum distance between obstacles
+        //     const x = gameCanvas.width + Math.random() * ((maxWidth - minWidth) + minWidth);
+        //     const y = gameCanvas.height - 166;
+        //     const width = 50;
+        //     const height = 50;
+        //     const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26);
+        //     obstacles.push(obstacle);
+        // }
+
+        // function gameLoop(character) {
+        //     return new Promise((resolve) => {
+                // function loop() {
+                //     // gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height)
+                //     background.update()
+
+                //     character.draw()
+                //     const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s))
+                //     character.update()
+
+                //     Visualizer.drawNetwork(visualizerCtx, character.brain)
+
+                //     character.velX = 0
+
+                //     const outputs = NeuralNetwork.feedForward(rayData, character.brain)
+
+                //     if (outputs[0] === 1) {
+                //         character.moveLeft()
+                //     }
+                //     if (outputs[1] === 1) {
+                //         character.jump()
+                //     }
+                //     if (outputs[2] === 1) {
+                //         character.moveRight()
+                //     }
+                //     if (outputs[3] === 1) {
+                //         character.duck()
+                //     }
+
+
+                //     if (
+                //         obstacles.length === 0 ||
+                //         (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) <
+                //         gameCanvas.width - (Math.floor(Math.random() * 300) + 100)
+                //     ) {
+                //         createObstacle();
+                //     }
+
+                //     let collisionDetected = false
+
+                //     for (const [index, obstacle] of obstacles.entries()) {
+                //         obstacle.draw()
+                //         obstacle.update()
+
+                //         if (
+                //             character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
+                //             character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
+                //             character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
+                //             character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
+                //         ) {
+                //             // Collision detected
+                //             collisionDetected = true
+                //             break
+                //         }
+
+                //         if (obstacle.x + obstacle.width < 0) {
+                //             obstacles.splice(index, 1)
+                //         }
+                //     }
+
+                //     if (!collisionDetected && character.distance <= 10000) {
+                //         requestAnimationFrame(loop)
+                //     }
+                //     else {
+                //         requestAnimationFrame(() => resolve(character))
+                //     }
+
+                //     character.distance++
+                // }
+
+        //         loop()
+        //     })
+        // }
+
+        function resetGameState() {
+            obstacles = []
+        }
+
+        class Floor {
+            constructor({ position, velocity, imageSrc }) {
+                this.position = position
+                this.height = 150
+                this.width = 50
+                this.image = new Image()
+                this.image.src = imageSrc
+                this.velocity = velocity
             }
 
-            for (let i = 0; i < characters.length; i++) {
-              let char = characters[i];
-
-              NeuralNetwork.mutate(char.brain, 0.2);
-
-              newChars.push(char);
+            draw() {
+                gameCtx.drawImage(this.image, this.position.x, this.position.y)
             }
 
-            return newChars;
-          }
+            update() {
+                this.position.x += this.velocity.x
+                if (this.position.x < -72) this.position.x = 1024
+                this.draw()
+            }
+        }
+
+        let mainFloorsArr = []
+        let xPosition1 = 954
+
+        for (let i = 0; i < 16; i++) {
+            mainFloorsArr.push(new Floor({
+                position: {
+                    x: xPosition1,
+                    y: 486
+                },
+                velocity: {
+                    x: -1.4,
+                    y: 0
+                },
+                imageSrc: floor1
+            }))
+
+            xPosition1 -= 71
+        }
+
+        let subFloorsArr = []
+        let xPosition2 = 954
+
+        for (let i = 0; i < 16; i++) {
+            subFloorsArr.push(new Floor({
+                position: {
+                    x: xPosition2,
+                    y: 552
+                },
+                velocity: {
+                    x: -1.4,
+                    y: 0
+                },
+                imageSrc: floor2
+            }))
+
+            xPosition2 -= 71
+        }
+
+        let subFloorsArr2 = []
+        let xPosition3 = 954
+
+        for (let i = 0; i < 16; i++) {
+            subFloorsArr2.push(new Floor({
+                position: {
+                    x: xPosition3,
+                    y: 530
+                },
+                velocity: {
+                    x: -1.4,
+                    y: 0
+                },
+                imageSrc: floor2
+            }))
+
+            xPosition3 -= 71
+        }
+
+        let subFloorsArr3 = []
+        let xPosition4 = 954
+
+        for (let i = 0; i < 16; i++) {
+            subFloorsArr3.push(new Floor({
+                position: {
+                    x: xPosition4,
+                    y: 508
+                },
+                velocity: {
+                    x: -1.4,
+                    y: 0
+                },
+                imageSrc: floor2
+            }))
+
+            xPosition4 -= 71
+        }
+
+
+        function drawFloor() {
+            window.requestAnimationFrame(drawFloor)
+            for (let i = 0; i < mainFloorsArr.length; i++) {
+                let floor = mainFloorsArr[i]
+                floor.update()
+            }
+
+            for (let i = 0; i < subFloorsArr.length; i++) {
+                let floor = subFloorsArr[i]
+                floor.update()
+            }
+
+            for (let i = 0; i < subFloorsArr2.length; i++) {
+                let floor = subFloorsArr2[i]
+                floor.update()
+            }
+
+            for (let i = 0; i < subFloorsArr3.length; i++) {
+                let floor = subFloorsArr3[i]
+                floor.update()
+            }
+        }
+
+        drawFloor()
+
+        // window.addEventListener('keydown', (event) => {
+        //     switch (event.key) {
+        //         case 'a':
+        //             keys.a.pressed = true
+        //             lastKey = 'a'
+        //             break
+        //         case 'd':
+        //             keys.d.pressed = true
+        //             lastKey = 'd'
+        //             break
+        //         case 'w':
+        //             character.jump()
+        //             break
+        //         case 's':
+        //             character.duck()
+        //             break
+        //         case 'A':
+        //             keys.a.pressed = true
+        //             lastKey = 'a'
+        //             break
+        //         case 'D':
+        //             keys.d.pressed = true
+        //             lastKey = 'd'
+        //             break
+        //         case 'W':
+        //             character.jump()
+        //             break
+        //         case 'S':
+        //             character.duck()
+        //             break
+        //         case 'ArrowLeft':
+        //             keys.a.pressed = true
+        //             lastKey = 'a'
+        //             break
+        //         case 'ArrowRight':
+        //             keys.d.pressed = true
+        //             lastKey = 'd'
+        //             break
+        //         case 'ArrowUp':
+        //             character.jump()
+        //             break
+        //         case 'ArrowDown':
+        //             character.duck()
+        //             break
+        //     }
+        // })
+
+        // window.addEventListener('keyup', (event) => {
+        //     switch (event.key) {
+        //         case 'a':
+        //             keys.a.pressed = false
+        //             break
+        //         case 'd':
+        //             keys.d.pressed = false
+        //             break
+        //         case 'A':
+        //             keys.a.pressed = false
+        //             break
+        //         case 'D':
+        //             keys.d.pressed = false
+        //             break
+        //         case 'ArrowLeft':
+        //             keys.a.pressed = false
+        //             break
+        //         case 'ArrowRight':
+        //             keys.d.pressed = false
+        //             break
+        //     }
+        // })
 
         //   {
         //     "levels": [
@@ -888,362 +1445,6 @@ function GameCanvas() {
         //             }
         //         ]
         //     }
-
-        async function runSimulation(generations) {
-            let bestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
-            let initialCharacters = []
-
-            if (bestNeuralNetwork) {
-                initialCharacters = generateMutatedCharacters(n, JSON.parse(bestNeuralNetwork))
-
-                initialCharacters.unshift(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, JSON.parse(bestNeuralNetwork)))
-            }
-            else {
-                initialCharacters = generateCharacters(n)
-            }
-
-            for (let i = 0; i < generations; i++) {
-                let charactersArr = []
-                let findMaxArr = []
-
-                if (i === 0) charactersArr = [...initialCharacters]
-
-                if (i >= 1) {
-                    // for each generation, generate new mutated characters with each best brain
-                    let bestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
-                    charactersArr = [...generateMutatedCharacters(n, JSON.parse(bestNeuralNetwork))]
-
-                    charactersArr.unshift(new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, JSON.parse(bestNeuralNetwork)))
-                }
-
-                for (let j = 0; j < n; j++) {
-                    let character = charactersArr[j]
-                    console.log("running simulation for character " + (j + 1) + " - generation " + (i + 1))
-
-                    resetGameState(character)
-
-                    let char = await gameLoop(character)
-                    findMaxArr.push(char)
-
-                    console.log(findMaxArr)
-                }
-
-                let maxDistance = -Infinity
-
-                for (let i = 0; i < findMaxArr.length; i++) {
-                    let character = findMaxArr[i]
-
-                    if (character.distance > maxDistance) {
-                        maxDistance = character.distance
-                        bestNeuralNetwork = character.brain
-                    }
-                }
-
-
-                if (localStorage.getItem('maxDistance')) {
-                    if (maxDistance > Number(localStorage.getItem('maxDistance'))) {
-                        localStorage.removeItem('bestNeuralNetwork')
-                        localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestNeuralNetwork))
-                        localStorage.setItem('maxDistance', maxDistance.toString())
-                    }
-                }
-                else if (!localStorage.getItem('maxDistance')) {
-                    localStorage.setItem('bestNeuralNetwork', JSON.stringify(bestNeuralNetwork))
-                    localStorage.setItem('maxDistance', maxDistance.toString())
-                }
-
-                console.log(maxDistance)
-            }
-        }
-
-        if (!simulationStarted.current) {
-            simulationStarted.current = true;
-            runSimulation(generations)
-        }
-
-
-        function createObstacle() {
-            const minWidth = 150;
-            const maxWidth = minWidth + 100; // Adjust this value to control the maximum distance between obstacles
-            const x = gameCanvas.width + Math.random() * ((maxWidth - minWidth) + minWidth);
-            const y = gameCanvas.height - 166;
-            const width = 50;
-            const height = 50;
-            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26);
-            obstacles.push(obstacle);
-        }
-
-        function gameLoop(character) {
-            return new Promise((resolve) => {
-                function loop() {
-                    gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height)
-                    background.update()
-
-                    const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s))
-                    character.draw()
-                    character.update()
-
-                    Visualizer.drawNetwork(visualizerCtx, character.brain)
-
-                    character.velX = 0
-
-                    const outputs = NeuralNetwork.feedForward(rayData, character.brain)
-
-                    if (outputs[0] === 1) {
-                        character.moveLeft()
-                    }
-                    if (outputs[1] === 1) {
-                        character.jump()
-                    }
-                    if (outputs[2] === 1) {
-                        character.moveRight()
-                    }
-                    if (outputs[3] === 1) {
-                        character.duck()
-                    }
-
-
-                    if (
-                        obstacles.length === 0 ||
-                        (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) <
-                        gameCanvas.width - (Math.floor(Math.random() * 300) + 100)
-                    ) {
-                        createObstacle();
-                    }
-
-                    let collisionDetected = false
-
-                    for (const [index, obstacle] of obstacles.entries()) {
-                        obstacle.draw()
-                        obstacle.update()
-
-                        if (
-                            character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
-                            character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
-                            character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
-                            character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
-                        ) {
-                            // Collision detected
-                            collisionDetected = true
-                            break
-                        }
-
-                        if (obstacle.x + obstacle.width < 0) {
-                            obstacles.splice(index, 1)
-                        }
-                    }
-
-                    if (!collisionDetected && character.distance <= 10000) {
-                        requestAnimationFrame(loop)
-                    }
-                    else {
-                        requestAnimationFrame(() => resolve(character))
-                    }
-
-                    character.distance++
-                }
-
-                loop()
-            })
-        }
-
-        function resetGameState() {
-            obstacles = []
-        }
-
-        class Floor {
-            constructor({ position, velocity, imageSrc }) {
-                this.position = position
-                this.height = 150
-                this.width = 50
-                this.image = new Image()
-                this.image.src = imageSrc
-                this.velocity = velocity
-            }
-
-            draw() {
-                gameCtx.drawImage(this.image, this.position.x, this.position.y)
-            }
-
-            update() {
-                this.position.x += this.velocity.x
-                if (this.position.x < -72) this.position.x = 1024
-                this.draw()
-            }
-        }
-
-        let mainFloorsArr = []
-        let xPosition1 = 954
-
-        for (let i = 0; i < 16; i++) {
-            mainFloorsArr.push(new Floor({
-                position: {
-                    x: xPosition1,
-                    y: 486
-                },
-                velocity: {
-                    x: -1.4,
-                    y: 0
-                },
-                imageSrc: floor1
-            }))
-
-            xPosition1 -= 71
-        }
-
-        let subFloorsArr = []
-        let xPosition2 = 954
-
-        for (let i = 0; i < 16; i++) {
-            subFloorsArr.push(new Floor({
-                position: {
-                    x: xPosition2,
-                    y: 552
-                },
-                velocity: {
-                    x: -1.4,
-                    y: 0
-                },
-                imageSrc: floor2
-            }))
-
-            xPosition2 -= 71
-        }
-
-        let subFloorsArr2 = []
-        let xPosition3 = 954
-
-        for (let i = 0; i < 16; i++) {
-            subFloorsArr2.push(new Floor({
-                position: {
-                    x: xPosition3,
-                    y: 530
-                },
-                velocity: {
-                    x: -1.4,
-                    y: 0
-                },
-                imageSrc: floor2
-            }))
-
-            xPosition3 -= 71
-        }
-
-        let subFloorsArr3 = []
-        let xPosition4 = 954
-
-        for (let i = 0; i < 16; i++) {
-            subFloorsArr3.push(new Floor({
-                position: {
-                    x: xPosition4,
-                    y: 508
-                },
-                velocity: {
-                    x: -1.4,
-                    y: 0
-                },
-                imageSrc: floor2
-            }))
-
-            xPosition4 -= 71
-        }
-
-
-        function drawFloor() {
-            window.requestAnimationFrame(drawFloor)
-            for (let i = 0; i < mainFloorsArr.length; i++) {
-                let floor = mainFloorsArr[i]
-                floor.update()
-            }
-
-            for (let i = 0; i < subFloorsArr.length; i++) {
-                let floor = subFloorsArr[i]
-                floor.update()
-            }
-
-            for (let i = 0; i < subFloorsArr2.length; i++) {
-                let floor = subFloorsArr2[i]
-                floor.update()
-            }
-
-            for (let i = 0; i < subFloorsArr3.length; i++) {
-                let floor = subFloorsArr3[i]
-                floor.update()
-            }
-        }
-
-        drawFloor()
-
-        // window.addEventListener('keydown', (event) => {
-        //     switch (event.key) {
-        //         case 'a':
-        //             keys.a.pressed = true
-        //             lastKey = 'a'
-        //             break
-        //         case 'd':
-        //             keys.d.pressed = true
-        //             lastKey = 'd'
-        //             break
-        //         case 'w':
-        //             character.jump()
-        //             break
-        //         case 's':
-        //             character.duck()
-        //             break
-        //         case 'A':
-        //             keys.a.pressed = true
-        //             lastKey = 'a'
-        //             break
-        //         case 'D':
-        //             keys.d.pressed = true
-        //             lastKey = 'd'
-        //             break
-        //         case 'W':
-        //             character.jump()
-        //             break
-        //         case 'S':
-        //             character.duck()
-        //             break
-        //         case 'ArrowLeft':
-        //             keys.a.pressed = true
-        //             lastKey = 'a'
-        //             break
-        //         case 'ArrowRight':
-        //             keys.d.pressed = true
-        //             lastKey = 'd'
-        //             break
-        //         case 'ArrowUp':
-        //             character.jump()
-        //             break
-        //         case 'ArrowDown':
-        //             character.duck()
-        //             break
-        //     }
-        // })
-
-        // window.addEventListener('keyup', (event) => {
-        //     switch (event.key) {
-        //         case 'a':
-        //             keys.a.pressed = false
-        //             break
-        //         case 'd':
-        //             keys.d.pressed = false
-        //             break
-        //         case 'A':
-        //             keys.a.pressed = false
-        //             break
-        //         case 'D':
-        //             keys.d.pressed = false
-        //             break
-        //         case 'ArrowLeft':
-        //             keys.a.pressed = false
-        //             break
-        //         case 'ArrowRight':
-        //             keys.d.pressed = false
-        //             break
-        //     }
-        // })
-
     }, [])
 
 

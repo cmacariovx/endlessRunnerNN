@@ -1,6 +1,7 @@
 :root {
   --black: #222222;
   --gray: #717171;
+  --darkRed: rgb(161, 54, 54);
 }
 
 .app {
@@ -10,4 +11,5 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  background-color: #191919;
 }

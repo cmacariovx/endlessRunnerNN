@@ -1,0 +1,196 @@
+.landingContainer {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+    .landingHeaderContainer {
+        height: 100px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #010409;
+        position: sticky;
+        top: 0;
+        padding: 20px 40px;
+    }
+
+        .landingHeaderLeft {
+            height: 100%;
+            width: 50%;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+            .landingHeaderLeftLogo {
+                font-size: 18px;
+                font-weight: bold;
+                user-select: none;
+            }
+
+        .landingHeaderRight {
+            height: 100%;
+            width: 50%;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+            .landingHeaderRightNav {
+                height: 100%;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-end;
+                align-items: center;
+            }
+
+                .landingHeaderRightNavLink {
+                    font-size: 15px;
+                    font-weight: bold;
+                    margin-right: 40px;
+                    cursor: pointer;
+                    transition: 0.1s;
+                }
+
+                .landingHeaderRightNavLink:hover {
+                    color: var(--darkRed);
+                    transition: 0.1s;
+                }
+
+                .landingHeaderRightNavButton {
+                    height: 40px;
+                    width: 100px;
+                    border-radius: 5px;
+                    background-color: rgb(32, 32, 32);
+                    font-size: 14px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: 0.2s linear;
+                }
+
+                .landingHeaderRightNavButton:hover {
+                    background-color: var(--darkRed);
+                    transition: 0.2s;
+                }
+
+    .landingBodyContainer {
+        min-height: 2000px;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        background-color: #010409;
+    }
+
+        .landingBodyHeroContainer {
+            height: 700px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-image: url(../assets/demonwoods-transformed2.jpeg);
+            background-size: cover;
+            /* background-position-y: -100px; */
+            background-repeat: no-repeat;
+        }
+
+            .landingBodyHeroTitle {
+                width: 400px;
+                font-size: 34px;
+                font-weight: bold;
+                color: white;
+                text-align: center;
+                margin-bottom: 40px;
+                text-shadow: 0 0 20px rgb(0, 0, 0);
+            }
+
+            .landingBodyHeroButton {
+                height: 50px;
+                width: 140px;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                font-size: 16px;
+                font-weight: bold;
+                background-color: var(--darkRed);
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+        .landingBodyAboutContainer {
+            height: 700px;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid lightblue;
+        }
+
+            .landingBodyAboutLeft {
+                height: 100%;
+                width: 50%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+                .landingBodyAboutLeftTitle {
+                    font-size: 24px;
+                    font-weight: bold;
+                }
+
+            .landingBodyAboutRight {
+                height: 100%;
+                width: 50%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+                .landingBodyAboutRightText {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin-bottom: 20px;
+                }
+
+                .landingBodyAboutRightText2 {
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-bottom: 25px;
+                    width: 330px;
+                    text-align: center;
+                }
+
+                .landingBodyAboutRightPic {
+                    height: 400px;
+                    width: auto;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+    .landingFooterContainer {
+        height: 100px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        background-color: black;
+    }
