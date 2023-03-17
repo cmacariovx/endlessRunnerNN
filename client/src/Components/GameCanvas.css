@@ -6,6 +6,7 @@
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
+    padding: 60px 0;
 }
     .gameControlsContainer {
         height: 270px;
@@ -14,7 +15,6 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        margin-top: 60px;
     }
 
     .gameControlsContainerUpper {

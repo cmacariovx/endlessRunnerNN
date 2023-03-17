@@ -18,7 +18,7 @@ function GameCanvas() {
     const [images, setImages] = useState({})
     const [reload, setReload] = useState(false)
 
-    const [tempPopSize, setTempPopSize] = useState(10)
+    const [tempPopSize, setTempPopSize] = useState(50)
     const [tempGenSize, setTempGenSize] = useState(10)
     const [tempBrainVisualizer, setTempBrainVisualizer] = useState(true)
     const [tempDrawSensors, setTempDrawSensors] = useState(true)
@@ -27,7 +27,7 @@ function GameCanvas() {
     const [tempObsMax, setTempObsMax] = useState(350)
     const [tempRandomObs, setTempRandomObs] = useState(true)
 
-    const [popSize, setPopSize] = useState(10)
+    const [popSize, setPopSize] = useState(50)
     const [genSize, setGenSize] = useState(10)
     const [brainVisualizer, setBrainVisualizer] = useState(true)
     const [drawSensors, setDrawSensors] = useState(true)
@@ -870,19 +870,25 @@ function GameCanvas() {
             return new Promise((resolve) => {
                 const completedCharacters = []
 
+                // Create a copy of characters array with ids
+                const charactersCopy = characters.map((character, index) => ({
+                    character,
+                    id: index,
+                }));
+
                 function loop() {
                     background.update()
                     if (!gameActive || cancellationToken.cancelled) {
                         return resolve(completedCharacters)
                     }
 
+                    if (brainVisualizer) Visualizer.drawNetwork(visualizerCtx, charactersCopy[0].character.brain)
+
                     characters.forEach((character, index) => {
                         if (!character.completed) {
                             character.draw()
                             const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s));
                             character.update()
-
-                            // Visualizer.drawNetwork(visualizerCtx, character.brain)
 
                             character.velX = 0
 
@@ -924,6 +930,13 @@ function GameCanvas() {
                                 // Collision detected
                                 character.completed = true
                                 completedCharacters.push(character)
+
+
+                                // Remove character from charactersCopy based on id
+                                const indexToRemove = charactersCopy.findIndex((charCopy) => charCopy.id === i);
+                                if (indexToRemove !== -1) {
+                                    charactersCopy.splice(indexToRemove, 1)
+                                }
                             }
                         });
 
@@ -1567,12 +1580,12 @@ function GameCanvas() {
                     <div className="gameControlContainer">
                         <p className="gameControlText">Draw Sensors</p>
                         <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>←</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>
+                                <p className="gameControlerInteractIcon2">←</p>
                             </div>
                             <p className="gameControlInteractText">{tempDrawSensors ? "True" : "False"}</p>
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>→</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>
+                                <p className="gameControlerInteractIcon2">→</p>
                             </div>
                         </div>
                     </div>
@@ -1617,12 +1630,12 @@ function GameCanvas() {
                     <div className="gameControlContainer">
                         <p className="gameControlText">Random Obstacle Seperation</p>
                         <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>←</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>
+                                <p className="gameControlerInteractIcon2">←</p>
                             </div>
                             <p className="gameControlInteractText">{tempRandomObs ? "True" : "False"}</p>
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>→</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>
+                                <p className="gameControlerInteractIcon2">→</p>
                             </div>
                         </div>
                     </div>
