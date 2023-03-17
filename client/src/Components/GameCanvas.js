@@ -598,7 +598,7 @@ function GameCanvas() {
                     // Create 3 mutants of the stored best brain with 0.6 multiplier
                     for (let i = 7; i < this.size; i++) {
                         const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
-                        NeuralNetwork.mutate(mutatedBrain, 0.6)
+                        NeuralNetwork.mutate(mutatedBrain, 0.7)
                         const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
                         this.characters.push(character)
                     }
@@ -671,7 +671,7 @@ function GameCanvas() {
             }
         }
 
-        runGenerations(50)
+        // runGenerations(5)
 
         function runCharacter(character) {
             return new Promise((resolve) => {
