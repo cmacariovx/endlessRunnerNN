@@ -589,7 +589,7 @@ function GameCanvas() {
 
                     for (let i = 1; i < this.size; i++) {
                         const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
-                        NeuralNetwork.mutate(mutatedBrain, 0.24)
+                        NeuralNetwork.mutate(mutatedBrain, 0.2)
                         const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
                         this.characters.push(character)
                     }
@@ -625,7 +625,7 @@ function GameCanvas() {
 
                 for (let i = 1; i < this.size; i++) {
                     const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
-                    NeuralNetwork.mutate(newBrain, 0.24)
+                    NeuralNetwork.mutate(newBrain, 0.2)
                     this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
                 }
             }
@@ -732,7 +732,7 @@ function GameCanvas() {
         function createObstacle() {
             const minWidth = 150;
             const maxWidth = minWidth + 100; // Adjust this value to control the maximum distance between obstacles
-            const x = gameCanvas.width + Math.random() * ((maxWidth - minWidth) + minWidth);
+            const x = gameCanvas.width + (Math.floor(Math.random() * 150)) + minWidth
             const y = gameCanvas.height - 166;
             const width = 50;
             const height = 50;
