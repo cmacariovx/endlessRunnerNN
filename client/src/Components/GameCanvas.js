@@ -309,6 +309,7 @@ function GameCanvas() {
 
                 this.brain = brain
                 this.distance = 0
+                this.completed = false
             }
 
             moveLeft() {
@@ -553,10 +554,12 @@ function GameCanvas() {
         let obstacles = []
 
         class Population {
-            constructor(size, characterTemplate) {
+            constructor(size, characterTemplate, ratio1 = 0.6, ratio2 = 0.3) {
                 this.size = size
                 this.characterTemplate = characterTemplate
                 this.characters = []
+                this.ratio1 = ratio1
+                this.ratio2 = ratio2
 
                 this.createInitialPopulation()
             }
@@ -587,18 +590,29 @@ function GameCanvas() {
                     const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
                     this.characters.push(bestCharacter)
 
-                    // Create 6 mutants of the stored best brain with 0.2 multiplier
-                    for (let i = 1; i <= 6; i++) {
+                    const count1 = Math.floor(this.size * this.ratio1)
+                    const count2 = Math.floor(this.size * this.ratio2)
+
+                    // Create count1 mutants of the stored best brain with 0.2 mutation rate
+                    for (let i = 1; i <= count1; i++) {
                         const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
                         NeuralNetwork.mutate(mutatedBrain, 0.2)
                         const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
                         this.characters.push(character)
                     }
 
-                    // Create 3 mutants of the stored best brain with 0.6 multiplier
-                    for (let i = 7; i < this.size; i++) {
+                    // Create count2 mutants of the stored best brain with 0.3 mutation rate
+                    for (let i = count1 + 1; i <= count1 + count2; i++) {
                         const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
-                        NeuralNetwork.mutate(mutatedBrain, 0.7)
+                        NeuralNetwork.mutate(mutatedBrain, 0.3)
+                        const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
+                        this.characters.push(character)
+                    }
+
+                    // Create count3 mutants of the stored best brain with a different mutation rate (e.g., 0.6)
+                    for (let i = count1 + count2 + 1; i < this.size; i++) {
+                        const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
+                        NeuralNetwork.mutate(mutatedBrain, 0.6)
                         const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
                         this.characters.push(character)
                     }
@@ -612,7 +626,7 @@ function GameCanvas() {
             }
 
             findBestCharacter() {
-                let bestCharacter = this.characters[0];
+                let bestCharacter = this.characters[0]
                 for (const character of this.characters) {
                     if (character.distance > bestCharacter.distance) {
                         bestCharacter = character
@@ -632,119 +646,135 @@ function GameCanvas() {
                 const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
                 this.characters[0] = bestCharacter
 
-                // Create 6 mutants of the stored best brain
-                for (let i = 1; i <= 6; i++) {
+                const count1 = Math.floor(this.size * this.ratio1)
+                const count2 = Math.floor(this.size * this.ratio2)
+
+                // Create count1 mutants of the stored best brain with 0.2 mutation rate
+                for (let i = 1; i <= count1; i++) {
                     const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
                     NeuralNetwork.mutate(newBrain, 0.2)
                     this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
                 }
 
-                // Create 3 completely new characters
-                for (let i = 7; i < this.size; i++) {
+                // Create count2 mutants of the stored best brain with 0.3 mutation rate
+                for (let i = count1 + 1; i <= count1 + count2; i++) {
                     const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
-                    NeuralNetwork.mutate(newBrain, 0.7)
+                    NeuralNetwork.mutate(newBrain, 0.3)
+                    this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
+                }
+
+                // Create count3 mutants of the stored best brain with a different mutation rate (e.g., 0.6)
+                for (let i = count1 + count2 + 1; i < this.size; i++) {
+                    const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
+                    NeuralNetwork.mutate(newBrain, 0.6)
                     this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
                 }
             }
         }
 
-        async function gameLoop(population) {
-            for (let i = 0; i < population.characters.length; i++) {
-                let character = population.characters[i]
 
-                resetGameState()
-                console.log("   Character", i + ": ", character.brain.levels[1].biases)
-                await runCharacter(character)
-            }
-            population.storeBestNeuralNetwork()
-            population.createNextGeneration()
-        }
+        const n = 100
 
+        runGenerations(5)
 
         async function runGenerations(generations) {
             const characterTemplate = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
-            const population = new Population(10, characterTemplate)
+            const population = new Population(n, characterTemplate, 0.6, 0.3)
 
             for (let generation = 0; generation < generations; generation++) {
+                resetGameState()
                 console.log("Generation:", generation)
                 await gameLoop(population)
             }
         }
 
-        // runGenerations(5)
+        async function gameLoop(population) {
+            resetGameState()
+            console.log("Running characters:", population.characters.map((c, i) => `Character ${i}: ${c.brain.levels[1].biases}`))
+            await runCharacters(population.characters)
 
-        function runCharacter(character) {
+            population.storeBestNeuralNetwork()
+            population.createNextGeneration()
+        }
+
+        function runCharacters(characters) {
             return new Promise((resolve) => {
+                const completedCharacters = [];
+
                 function loop() {
-                    background.update()
+                    background.update();
 
-                    character.draw()
-                    const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s))
-                    character.update()
+                    characters.forEach((character, index) => {
+                        if (!character.completed) {
+                            character.draw();
+                            const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s));
+                            character.update();
 
-                    Visualizer.drawNetwork(visualizerCtx, character.brain)
+                            // Visualizer.drawNetwork(visualizerCtx, character.brain);
 
-                    character.velX = 0
+                            character.velX = 0;
 
-                    const outputs = NeuralNetwork.feedForward(rayData, character.brain)
+                            const outputs = NeuralNetwork.feedForward(rayData, character.brain);
 
-                    if (outputs[0] === 1) {
-                        character.moveLeft()
-                    }
-                    if (outputs[1] === 1) {
-                        character.jump()
-                    }
-                    if (outputs[2] === 1) {
-                        character.moveRight()
-                    }
-                    if (outputs[3] === 1) {
-                        character.duck()
-                    }
+                            if (outputs[0] === 1) {
+                                character.moveLeft();
+                            }
+                            if (outputs[1] === 1) {
+                                character.jump();
+                            }
+                            if (outputs[2] === 1) {
+                                character.moveRight();
+                            }
+                            if (outputs[3] === 1) {
+                                character.duck();
+                            }
 
+                            character.distance++;
+                        }
+                    });
 
                     if (
                         obstacles.length === 0 ||
                         (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) <
                         gameCanvas.width - (Math.floor(Math.random() * 300) + 100)
                     ) {
-                        createObstacle()
+                        createObstacle();
                     }
-
-                    let collisionDetected = false
 
                     for (const [index, obstacle] of obstacles.entries()) {
-                        obstacle.draw()
-                        obstacle.update()
+                        obstacle.draw();
+                        obstacle.update();
 
-                        if (
-                            character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
-                            character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
-                            character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
-                            character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
-                        ) {
-                            // Collision detected
-                            collisionDetected = true
-                            break
-                        }
+                        characters.forEach((character, i) => {
+                            if (
+                                !character.completed &&
+                                character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
+                                character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
+                                character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
+                                character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
+                            ) {
+                                // Collision detected
+                                character.completed = true;
+                                completedCharacters.push(character);
+                            }
+                        });
 
                         if (obstacle.x + obstacle.width < 0) {
-                            obstacles.splice(index, 1)
+                            obstacles.splice(index, 1);
                         }
                     }
 
-                    if (!collisionDetected && character.distance <= 10000) {
-                        requestAnimationFrame(loop)
+                    if (completedCharacters.length < characters.length && characters.every(char => char.distance <= 20000)) {
+                        requestAnimationFrame(loop);
+                    } else {
+                        requestAnimationFrame(() => resolve(completedCharacters));
                     }
-                    else {
-                        requestAnimationFrame(() => resolve(character))
-                    }
-
-                    character.distance++
                 }
 
-                loop()
+                loop();
             });
         }
+
 
         function createObstacle() {
             const minWidth = 150;
@@ -954,297 +984,219 @@ function GameCanvas() {
         //     }
         // })
 
-        //   {
+        // {
         //     "levels": [
+        //         {
+        //             "inputs": [
+        //                 0.9119999999999655,
+        //                 0.898386352622586,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 0
+        //             ],
+        //             "outputs": [
+        //                 0,
+        //                 0,
+        //                 0,
+        //                 1,
+        //                 1,
+        //                 1,
+        //                 0,
+        //                 0,
+        //                 1,
+        //                 0
+        //             ],
+        //             "biases": [
+        //                 0.19499369061131913,
+        //                 -0.3230307281710343,
+        //                 0.4460915702098062,
+        //                 0.17541472904014682,
+        //                 -0.535494779489864,
+        //                 0.050484408357885494,
+        //                 0.4830296805484102,
+        //                 0.25143911960945714,
+        //                 -0.5364719225988441,
+        //                 0.6087904003401184
+        //             ],
+        //             "weights": [
+        //                 [
+        //                     -0.2668200641178492,
+        //                     -0.443604197583623,
+        //                     -0.006455777852001243,
+        //                     -0.16338989755168593,
+        //                     0.10707128413022585,
+        //                     -0.1796906855080594,
+        //                     0.5707465757705739,
+        //                     -0.24963526729237828,
+        //                     -0.034338426807018804,
+        //                     -0.26298383534879766
+        //                 ],
+        //                 [
+        //                     0.45852528566932343,
+        //                     -0.37452069283844136,
+        //                     0.009034650688348106,
+        //                     0.3998293477226139,
+        //                     -0.3282823369303201,
+        //                     0.37008042966152593,
+        //                     -0.16748549090307646,
+        //                     0.14720694668231715,
+        //                     -0.29322182498222793,
+        //                     0.39525702048575667
+        //                 ],
+        //                 [
+        //                     -0.18844825676091825,
+        //                     -0.3572826275158981,
+        //                     0.15683457030186337,
+        //                     -0.2790672061574075,
+        //                     -0.2314499103620161,
+        //                     -0.5592462837107174,
+        //                     0.8199147357884751,
+        //                     0.014934790232433937,
+        //                     -0.2506827318741981,
+        //                     0.14897233626191864
+        //                 ],
+        //                 [
+        //                     -0.22260057478471618,
+        //                     0.3213365870440174,
+        //                     0.14225499855500864,
+        //                     -0.14583724254546562,
+        //                     -0.18835480115525918,
+        //                     -0.011931423995001217,
+        //                     -0.18634439200770955,
+        //                     0.04309549776099739,
+        //                     -0.08905442407795117,
+        //                     0.19829613598454032
+        //                 ],
+        //                 [
+        //                     -0.24762518905573133,
+        //                     0.04409662121309821,
+        //                     -0.015996159949572986,
+        //                     -0.3030776594349621,
+        //                     0.36815554442851245,
+        //                     -0.1875638713588638,
+        //                     -0.16730179603812487,
+        //                     -0.002845072819658734,
+        //                     0.2917797388564038,
+        //                     -0.26307241611333143
+        //                 ],
+        //                 [
+        //                     0.7438993675143311,
+        //                     -0.615233697134638,
+        //                     -0.32111883620468273,
+        //                     0.09447499647725745,
+        //                     -0.2337358068192513,
+        //                     -0.11830343261003695,
+        //                     0.4848688819163784,
+        //                     0.3012716439627132,
+        //                     -0.21200868354425206,
+        //                     0.602463718854519
+        //                 ],
+        //                 [
+        //                     -0.19561685812511462,
+        //                     0.3074046906379527,
+        //                     -0.09222065345284267,
+        //                     -0.1676291130048358,
+        //                     -0.18967600024551368,
+        //                     -0.42430058092865885,
+        //                     0.48206625380187695,
+        //                     0.7445666008227294,
+        //                     0.12188383452120558,
+        //                     -0.27408317608624594
+        //                 ]
+        //             ]
+        //         },
         //         {
         //             "inputs": [
         //                 0,
         //                 0,
         //                 0,
-        //                 0.8179200038444633,
-        //                 0.8513323056836708,
+        //                 1,
+        //                 1,
+        //                 1,
         //                 0,
         //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0.5025481994611276,
+        //                 1,
         //                 0
         //             ],
         //             "outputs": [
         //                 1,
         //                 0,
         //                 0,
-        //                 1,
-        //                 0,
-        //                 1,
-        //                 1,
-        //                 0,
-        //                 1,
-        //                 1
+        //                 0
         //             ],
         //             "biases": [
-        //                 -0.5187126559108288,
-        //                 0.4336440443887127,
-        //                 0.7286508897278111,
-        //                 -0.47685634754543693,
-        //                 -0.03708091157757326,
-        //                 0.43920511278880003,
-        //                 -0.6181612052010678,
-        //                 -0.32457357728804614,
-        //                 -0.31822760420554996,
-        //                 0.520270958991225
+        //                 -0.1908862208472119,
+        //                 0.45266112643182793,
+        //                 0.4655953448426199,
+        //                 0.0942535838030894
         //             ],
         //             "weights": [
         //                 [
-        //                     -0.8487542202452489,
-        //                     0.39652639217417224,
-        //                     -0.7997488675106045,
-        //                     -0.05243088622892042,
-        //                     0.5684035307690205,
-        //                     -0.3418127924590161,
-        //                     0.9778155616359216,
-        //                     -0.2679672415241899,
-        //                     -0.6955876012765729,
-        //                     -0.6067770501118745
+        //                     -0.3415543972873495,
+        //                     0.09727541920175439,
+        //                     -0.7427374168665518,
+        //                     -0.6806350633821296
         //                 ],
         //                 [
-        //                     0.7756170160306637,
-        //                     0.17574875792362102,
-        //                     -0.8614338829817676,
-        //                     -0.20630777555940616,
-        //                     -0.5045981369391008,
-        //                     0.8962496024270193,
-        //                     -0.5898579374285636,
-        //                     -0.406757604904905,
-        //                     -0.2552951862234134,
-        //                     -0.014755517363155779
+        //                     0.05846135718284293,
+        //                     0.41822949690191424,
+        //                     0.4023250778788061,
+        //                     -0.15775853782337237
         //                 ],
         //                 [
-        //                     0.6783110779182231,
-        //                     -0.06735090888322395,
-        //                     -0.2092353119850908,
-        //                     0.7767512517384276,
-        //                     0.46197450387923167,
-        //                     0.28276385159785616,
-        //                     0.1027869328822418,
-        //                     0.09782363514942158,
-        //                     0.10155109123302895,
-        //                     -0.6220060446879592
+        //                     0.27860088349370915,
+        //                     0.27189412920184575,
+        //                     0.5758417079551525,
+        //                     0.050049500888839055
         //                 ],
         //                 [
-        //                     0.053086771287503165,
-        //                     0.8885889186520559,
-        //                     -0.272844503096778,
-        //                     0.027295208090670806,
-        //                     -0.12860968592997002,
-        //                     0.1215309784968226,
-        //                     0.4658086243467537,
-        //                     -0.3453314946737797,
-        //                     -0.133663126138045,
-        //                     -0.15818893561578198
+        //                     0.009717168781794627,
+        //                     0.30294587843128545,
+        //                     -0.23140011522961554,
+        //                     -0.39764462775242854
         //                 ],
         //                 [
-        //                     -0.37086927865845504,
-        //                     -0.31513343189989146,
-        //                     -0.6572306765847686,
-        //                     -0.46476513515354917,
-        //                     -0.7913829001301431,
-        //                     0.7284349745635572,
-        //                     -0.8443681321895327,
-        //                     -0.6955648206199814,
-        //                     0.4951601610578451,
-        //                     0.5585137476570667
+        //                     0.06339596405198861,
+        //                     -0.09998162404962763,
+        //                     0.3857406722453339,
+        //                     -0.2557378117506326
         //                 ],
         //                 [
-        //                     0.16008780875464534,
-        //                         -0.007401633117357597,
-        //                         0.6757079458346262,
-        //                         0.3423284099724773,
-        //                         0.23611499438552075,
-        //                         -0.12930385984248474,
-        //                         0.5716078601685869,
-        //                         -0.32468577814278204,
-        //                         0.8067758966368439,
-        //                         -0.7002121842739958
-        //                     ],
-        //                     [
-        //                         -0.2332260916460445,
-        //                         -0.06263512390657544,
-        //                         0.728922645528878,
-        //                         0.24946404038915626,
-        //                         0.1716922120716604,
-        //                         -0.05291589799242438,
-        //                         -0.5354181067380569,
-        //                         0.355332398530933,
-        //                         0.7948280681047861,
-        //                         -0.8602541676424378
-        //                     ],
-        //                     [
-        //                         -0.46097537880245687,
-        //                         -0.5151461142863507,
-        //                         0.006152302871391346,
-        //                         0.22778321285214254,
-        //                         0.4386603859841712,
-        //                         -0.09337768271440713,
-        //                         0.5438915323268223,
-        //                         0.14602035954494397,
-        //                         0.8079767832027912,
-        //                         -0.3835462991303419
-        //                     ],
-        //                     [
-        //                         -0.37988631967375736,
-        //                         -0.23566280469191872,
-        //                         0.5938992900132646,
-        //                         0.058066034354769314,
-        //                         -0.0013979122955328493,
-        //                         0.5020467740523233,
-        //                         -0.21053788516050498,
-        //                         0.4573808254644677,
-        //                         0.8911022388815644,
-        //                         0.5807131778621379
-        //                     ],
-        //                     [
-        //                         -0.2777327022381489,
-        //                         -0.7473184993245492,
-        //                         -0.1793716768287612,
-        //                         0.469431856748623,
-        //                         0.2668190590833567,
-        //                         -0.45576594282500094,
-        //                         -0.1272109318774076,
-        //                         -0.6041859157638865,
-        //                         -0.11674676527270283,
-        //                         -0.21591691565004165
-        //                     ],
-        //                     [
-        //                         -0.04115773780571681,
-        //                         0.4455485711247632,
-        //                         0.4887044318622431,
-        //                         0.6375151987828588,
-        //                         -0.45776841096778986,
-        //                         0.4580508366476699,
-        //                         -0.29158854679933344,
-        //                         -0.14753062605145617,
-        //                         -0.3127148530196574,
-        //                         -0.8246790547702227
-        //                     ],
-        //                     [
-        //                         -0.4478080500310046,
-        //                         -0.6967701651124579,
-        //                         -0.4879558267012006,
-        //                         0.10226799041529197,
-        //                         -0.08924819449727597,
-        //                         0.3187035043476804,
-        //                         0.6605296333937545,
-        //                         -0.5259014431081542,
-        //                         0.4947929674737936,
-        //                         0.8615828267488471
-        //                     ],
-        //                     [
-        //                         0.2549620839968913,
-        //                         0.3271820465816778,
-        //                         0.5382086582338949,
-        //                         -0.04796601112921381,
-        //                         0.4863873817886509,
-        //                         0.8440370527993019,
-        //                         -0.23773229501744114,
-        //                         -0.4003177532057307,
-        //                         0.21007577892361695,
-        //                         -0.2364642900399719
-        //                     ]
+        //                     -0.18849296189473447,
+        //                     -0.20002767332993177,
+        //                     0.024535978883442444,
+        //                     -0.7072943175880984
+        //                 ],
+        //                 [
+        //                     0.3755291111443591,
+        //                     -0.3448731427468356,
+        //                     0.1794105180564143,
+        //                     -0.04514725532470733
+        //                 ],
+        //                 [
+        //                     -0.05815818549981014,
+        //                     0.49989297611740086,
+        //                     0.297032410023358,
+        //                     0.5335918997810365
+        //                 ],
+        //                 [
+        //                     -0.03702541574592777,
+        //                     -0.04204166142857946,
+        //                     0.08806120956913142,
+        //                     0.30243735082996137
+        //                 ],
+        //                 [
+        //                     0.17646048218239388,
+        //                     -0.2724739025948478,
+        //                     -0.21865183764120782,
+        //                     0.4659198278100944
         //                 ]
-        //             },
-        //             {
-        //                 "inputs": [
-        //                     1,
-        //                     0,
-        //                     0,
-        //                     1,
-        //                     0,
-        //                     1,
-        //                     1,
-        //                     0,
-        //                     1,
-        //                     1
-        //                 ],
-        //                 "outputs": [
-        //                     1,
-        //                     1,
-        //                     1,
-        //                     0
-        //                 ],
-        //                 "biases": [
-        //                     -0.5766329227257196,
-        //                     -0.8297216633211455,
-        //                     -0.1444109313009232,
-        //                     0.6702476360068601
-        //                 ],
-        //                 "weights": [
-        //                     [
-        //                         0.30398547100072193,
-        //                         -0.7665039035506507,
-        //                         0.21328329654336828,
-        //                         0.14525310531671798
-        //                     ],
-        //                     [
-        //                         0.296707152692418,
-        //                         -0.44237862978626896,
-        //                         -0.2952875685477292,
-        //                         0.3590575222741884
-        //                     ],
-        //                     [
-        //                         0.3584022017545518,
-        //                         0.6240202314049543,
-        //                         -0.7396743169791866,
-        //                         -0.6005203138424914
-        //                     ],
-        //                     [
-        //                         0.5339111531138043,
-        //                         0.7013374304937654,
-        //                         -0.38108141330102174,
-        //                         -0.13016617886234777
-        //                     ],
-        //                     [
-        //                         -0.4647731439243742,
-        //                         -0.5320280269272197,
-        //                         -0.8476267976805758,
-        //                         0.6684147217758643
-        //                     ],
-        //                     [
-        //                         -0.3927056523786825,
-        //                         -0.957184364552039,
-        //                         0.19885219912325905,
-        //                         0.5812004894633551
-        //                     ],
-        //                     [
-        //                         0.7701128409980502,
-        //                         0.42642979733767633,
-        //                         -0.3307218357208677,
-        //                         -0.6972781228344813
-        //                     ],
-        //                     [
-        //                         -0.3387295781244705,
-        //                         0.5450093538553459,
-        //                         -0.2765515441652203,
-        //                         -0.251165875457667
-        //                     ],
-        //                     [
-        //                         0.12011550448519817,
-        //                         0.6995451977618334,
-        //                         0.4915315763091164,
-        //                         0.38354320304354567
-        //                     ],
-        //                     [
-        //                         -0.22954691332123342,
-        //                         -0.224148423058881,
-        //                         -0.10176371959640662,
-        //                         -0.6410494769180961
-        //                     ]
-        //                 ]
-        //             }
-        //         ]
-        //     }
+        //             ]
+        //         }
+        //     ]
+        // }
     }, [])
 
 
