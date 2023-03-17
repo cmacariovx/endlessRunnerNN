@@ -168,6 +168,7 @@
                     .gameControlInteractText {
                         margin-left: 10px;
                         margin-right: 10px;
+                        user-select: none;
                     }
 
     .gameCanvasContainerMain {
@@ -180,12 +181,128 @@
         margin-top: 40px;
     }
 
-    .visualizerCanvasContainer {
-        min-height: 420px;
-        min-width: 420px;
+    .lowerCanvasTitle {
+        font-size: 18px;
+        font-weight: bold;
+        height: 40px;
+        width: 100%;
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        margin-top: 50px;
+        margin-top: 40px;
     }
+
+    .lowerCanvasContainer {
+        min-height: 450px;
+        width: 1024px;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+        .lowerCanvasContainerLeft {
+            height: 500px;
+            width: 50%;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+            .visualizerCanvasContainer {
+                min-height: 424px;
+                min-width: 424px;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+            }
+
+        .lowerCanvasContainerRight {
+            min-height: 500px;
+            width: 50%;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+            .lowerCanvasContainerRightStatsContainer {
+                min-height: 424px;
+                width: 424px;
+                background-color: #141414;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: center;
+                overflow-y: auto;
+                overflow-x: auto;
+                padding: 40px;
+            }
+
+            .lowerCanvasContainerRightStatsContainer::-webkit-scrollbar {
+                width: 6px;
+                background-color: rgb(24, 24, 24);
+            }
+
+            .lowerCanvasContainerRightStatsContainer::-webkit-scrollbar-thumb {
+                width: 3px;
+                background-color: rgb(98, 98, 98);
+                border-radius: 5px;
+            }
+
+            .lowerCanvasStatHeader {
+                font-size: 16px;
+                font-weight: bold;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-start;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+
+            .lowerCanvasStatText {
+                font-size: 15px;
+                font-weight: bold;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-start;
+                align-items: center;
+                line-height: 1.6;
+                padding-left: 40px;
+                margin-bottom: 30px;
+                user-select: none;
+            }
+
+            .lowerCanvasStatText2 {
+                font-size: 10px;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-start;
+                align-items: center;
+                line-height: 1.6;
+                padding-left: 40px;
+                margin-bottom: 30px;
+                user-select: none;
+            }
+
+/* Hide the warning message by default */
+.screen-warning {
+    display: none;
+}
+
+/* Show the warning message and hide the app content when the screen width is less than 1050px or height is less than 600px */
+@media screen and (max-width: 1049px), screen and (max-height: 599px) {
+    .gameCanvasContainer {
+        display: none;
+    }
+
+    .screen-warning {
+        display: block;
+    }
+}

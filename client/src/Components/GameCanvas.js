@@ -38,6 +38,9 @@ function GameCanvas() {
 
     const [tempChanged, setTempChanged] = useState(false)
 
+    const [maxDistance, setMaxDistance] = useState(0)
+    const [bestBrain, setBestBrain] = useState()
+
     function reloadGameState() {
         setTempChanged(false)
         setPopSize(tempPopSize)
@@ -48,6 +51,9 @@ function GameCanvas() {
         setObsMin(tempObsMin)
         setObsMax(tempObsMax)
         setRandomObs(tempRandomObs)
+        setMaxDistance(0)
+        setBestBrain()
+        setGameActive(true)
         !reload ? setReload(true) : setReload(false)
     }
 
@@ -167,8 +173,8 @@ function GameCanvas() {
         let visualizerCanvas = visualizerCanvasRef.current
         let visualizerCtx = visualizerCanvas.getContext("2d")
 
-        visualizerCanvas.height = 420
-        visualizerCanvas.width = 420
+        visualizerCanvas.height = 424
+        visualizerCanvas.width = 424
 
         // visualizerCtx.fillStyle = '#010409'
         visualizerCtx.fillStyle = '#141414'
@@ -699,6 +705,8 @@ function GameCanvas() {
         }
 
         let obstacles = []
+        let currentMaxDistance = 0
+        let bestBrain
 
         class Population {
             constructor(size, characterTemplate, ratio1 = 0.6, ratio2 = 0.3) {
@@ -714,7 +722,11 @@ function GameCanvas() {
             storeBestNeuralNetwork() {
                 const bestCharacter = this.findBestCharacter()
                 const storedMaxDistance = localStorage.getItem('maxDistance')
-                console.log(bestCharacter.distance)
+
+                if (bestCharacter.distance > currentMaxDistance) {
+                    currentMaxDistance = bestCharacter.distance
+                    bestBrain = bestCharacter.brain
+                }
 
                 // If there is no stored max distance or the current best character's distance is greater, update localStorage
                 if (!storedMaxDistance || bestCharacter.distance > parseInt(storedMaxDistance, 10)) {
@@ -851,6 +863,8 @@ function GameCanvas() {
                     resetGameState()
                     console.log("Generation:", generation)
                     await gameLoop(population)
+                    setMaxDistance(currentMaxDistance)
+                    setBestBrain(bestBrain)
                 }
             }
 
@@ -874,10 +888,11 @@ function GameCanvas() {
                 const charactersCopy = characters.map((character, index) => ({
                     character,
                     id: index,
-                }));
+                }))
 
                 function loop() {
                     background.update()
+
                     if (!gameActive || cancellationToken.cancelled) {
                         return resolve(completedCharacters)
                     }
@@ -1526,133 +1541,151 @@ function GameCanvas() {
 
 
     return (
-        <div className="gameCanvasContainer">
-            <div className="gameControlsContainer">
-                <div className="gameControlsContainerUpper">
-                    <div className="gameControlContainer">
-                        <p className="gameControlText">Character's Brain</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => !controls ? setControls(true) : setControls(false)}>←</p>
+        <React.Fragment>
+            <div className="screen-warning">
+                Your screen must be at least 1050px wide and 600px in height to use this app.
+            </div>
+            <div className="gameCanvasContainer">
+                <div className="gameControlsContainer">
+                    <div className="gameControlsContainerUpper">
+                        <div className="gameControlContainer">
+                            <p className="gameControlText">Character's Brain</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => !controls ? setControls(true) : setControls(false)}>
+                                    <p className="gameControlerInteractIcon2">←</p>
+                                </div>
+                                <p className="gameControlInteractText">{!controls ? "Neural Network" : "Yours"}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => !controls ? setControls(true) : setControls(false)}>
+                                    <p className="gameControlerInteractIcon2">→</p>
+                                </div>
                             </div>
-                            <p className="gameControlInteractText">{!controls ? "Neural Network" : "Yours"}</p>
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => !controls ? setControls(true) : setControls(false)}>→</p>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}>Population Size</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => increment1("-")}>
+                                    <p className="gameControlerInteractIcon">-</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempPopSize}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => increment1("+")}>
+                                    <p className="gameControlerInteractIcon">+</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}># Generations</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => increment2("-")}>
+                                    <p className="gameControlerInteractIcon">-</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempGenSize}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => increment2("+")}>
+                                    <p className="gameControlerInteractIcon">+</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}>Brain Visualizer</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer">
+                                    <p className="gameControlerInteractIcon2" onClick={() => {!controls ? !tempBrainVisualizer ? setTempBrainVisualizer(true) : setTempBrainVisualizer(false) : doNothing(); changeTemp()}}>←</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempBrainVisualizer ? "True" : "False"}</p>
+                                <div className="gameControlInteractIconContainer">
+                                    <p className="gameControlerInteractIcon2" onClick={() => {!controls ? !tempBrainVisualizer ? setTempBrainVisualizer(true) : setTempBrainVisualizer(false) : doNothing(); changeTemp()}}>→</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className="gameControlText">Draw Sensors</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>
+                                    <p className="gameControlerInteractIcon2">←</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempDrawSensors ? "True" : "False"}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>
+                                    <p className="gameControlerInteractIcon2">→</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="gameControlContainer">
-                        <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}>Population Size</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => increment1("-")}>
-                                <p className="gameControlerInteractIcon">-</p>
+                    <div className="gameControlsContainerLower">
+                        <div className="gameControlContainer">
+                            <p className="gameControlText">Obstacle Speed</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => increment3("-")}>
+                                    <p className="gameControlerInteractIcon">-</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempObsSpeed}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => increment3("+")}>
+                                    <p className="gameControlerInteractIcon">+</p>
+                                </div>
                             </div>
-                            <p className="gameControlInteractText">{tempPopSize}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => increment1("+")}>
-                                <p className="gameControlerInteractIcon">+</p>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className={tempRandomObs ? "gameControlText" : "gameControlText crossThroughText"}>Obstacle Min Seperation</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => increment4("-")}>
+                                    <p className="gameControlerInteractIcon">-</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempObsMin}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => increment4("+")}>
+                                    <p className="gameControlerInteractIcon">+</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className="gameControlText">Obstacle Max Seperation</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => increment5("-")}>
+                                    <p className="gameControlerInteractIcon">-</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempObsMax}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => increment5("+")}>
+                                    <p className="gameControlerInteractIcon">+</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="gameControlContainer">
+                            <p className="gameControlText">Random Obstacle Seperation</p>
+                            <div className="gameControlInteract">
+                                <div className="gameControlInteractIconContainer" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>
+                                    <p className="gameControlerInteractIcon2">←</p>
+                                </div>
+                                <p className="gameControlInteractText">{tempRandomObs ? "True" : "False"}</p>
+                                <div className="gameControlInteractIconContainer" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>
+                                    <p className="gameControlerInteractIcon2">→</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="gameControlContainer">
-                        <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}># Generations</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => increment2("-")}>
-                                <p className="gameControlerInteractIcon">-</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempGenSize}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => increment2("+")}>
-                                <p className="gameControlerInteractIcon">+</p>
-                            </div>
+                    <div className="gameControlsContainerLower2">
+                        <button className="gameControlStartButton" onClick={() => {gameActive ? setGameActive(false) : doNothing(); reloadGameState();}}>Start Game</button>
+                        <button className="gameControlEndButton" onClick={() => setGameActive(false)}>End Game</button>
+                        {/* <button className={!tempChanged ? "gameControlApplyButton" : "gameControlApplyButton button-glow"} onClick={reloadGameState}>Apply Changes</button> */}
+                    </div>
+                </div>
+                <div className="gameCanvasContainerMain">
+                    <canvas id="gameCanvas" ref={gameCanvasRef}/>
+                </div>
+                <p className={!controls ? "lowerCanvasTitle" : "lowerCanvasTitle crossThroughText"}>Neural Network Stats</p>
+                <div className="lowerCanvasContainer">
+                    <div className="lowerCanvasContainerLeft">
+                        <div className="visualizerCanvasContainer">
+                            <canvas id="visualizerCanvas" ref={visualizerCanvasRef}/>
                         </div>
                     </div>
-                    <div className="gameControlContainer">
-                        <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}>Brain Visualizer</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => {!controls ? !tempBrainVisualizer ? setTempBrainVisualizer(true) : setTempBrainVisualizer(false) : doNothing(); changeTemp()}}>←</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempBrainVisualizer ? "True" : "False"}</p>
-                            <div className="gameControlInteractIconContainer">
-                                <p className="gameControlerInteractIcon2" onClick={() => {!controls ? !tempBrainVisualizer ? setTempBrainVisualizer(true) : setTempBrainVisualizer(false) : doNothing(); changeTemp()}}>→</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="gameControlContainer">
-                        <p className="gameControlText">Draw Sensors</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>
-                                <p className="gameControlerInteractIcon2">←</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempDrawSensors ? "True" : "False"}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>
-                                <p className="gameControlerInteractIcon2">→</p>
-                            </div>
+                    <div className="lowerCanvasContainerRight">
+                        <div className="lowerCanvasContainerRightStatsContainer">
+                            <p className="lowerCanvasStatHeader">Current Max Distance: </p>
+                            <p className="lowerCanvasStatText">{maxDistance}</p>
+                            <p className="lowerCanvasStatHeader">Current Best Brain: </p>
+                            <p className="lowerCanvasStatText2">{JSON.stringify(bestBrain, null, 2)}</p>
                         </div>
                     </div>
                 </div>
-                <div className="gameControlsContainerLower">
-                    <div className="gameControlContainer">
-                        <p className="gameControlText">Obstacle Speed</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => increment3("-")}>
-                                <p className="gameControlerInteractIcon">-</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempObsSpeed}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => increment3("+")}>
-                                <p className="gameControlerInteractIcon">+</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="gameControlContainer">
-                        <p className={tempRandomObs ? "gameControlText" : "gameControlText crossThroughText"}>Obstacle Min Seperation</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => increment4("-")}>
-                                <p className="gameControlerInteractIcon">-</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempObsMin}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => increment4("+")}>
-                                <p className="gameControlerInteractIcon">+</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="gameControlContainer">
-                        <p className="gameControlText">Obstacle Max Seperation</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => increment5("-")}>
-                                <p className="gameControlerInteractIcon">-</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempObsMax}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => increment5("+")}>
-                                <p className="gameControlerInteractIcon">+</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="gameControlContainer">
-                        <p className="gameControlText">Random Obstacle Seperation</p>
-                        <div className="gameControlInteract">
-                            <div className="gameControlInteractIconContainer" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>
-                                <p className="gameControlerInteractIcon2">←</p>
-                            </div>
-                            <p className="gameControlInteractText">{tempRandomObs ? "True" : "False"}</p>
-                            <div className="gameControlInteractIconContainer" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>
-                                <p className="gameControlerInteractIcon2">→</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="gameControlsContainerLower2">
-                    <button className="gameControlStartButton" onClick={() => setGameActive(true)}>Start Game</button>
-                    <button className="gameControlEndButton" onClick={() => setGameActive(false)}>End Game</button>
-                    <button className={!tempChanged ? "gameControlApplyButton" : "gameControlApplyButton button-glow"} onClick={reloadGameState}>Apply Changes</button>
-                </div>
             </div>
-            <div className="gameCanvasContainerMain">
-                <canvas id="gameCanvas" ref={gameCanvasRef}/>
-            </div>
-            <div className="visualizerCanvasContainer">
-                <canvas id="visualizerCanvas" ref={visualizerCanvasRef}/>
-            </div>
-        </div>
+        </React.Fragment>
     )
 }
 

@@ -135,7 +135,8 @@
         }
 
             .landingBodyHeroTitle {
-                width: 500px;
+                width: 100%;
+                max-width: 500px;
                 font-size: 34px;
                 font-weight: bold;
                 color: white;
@@ -191,7 +192,8 @@
 
                 .landingBodyAboutLeftOption {
                     height: 70px;
-                    width: 400px;
+                    max-width: 400px;
+                    width: 100%;
                     display: flex;
                     flex-direction: row;
                     justify-content: center;
@@ -202,6 +204,7 @@
                     border-radius: 5px;
                     cursor: pointer;
                     transition: 0.2s linear;
+                    padding: 10px;
                 }
 
                     .landingBodyAboutLeftOption:hover {
@@ -267,3 +270,146 @@
             margin-right: 30px;
             cursor: pointer;
         }
+
+@media screen and (max-width: 950px) {
+    .landingBodyAboutContainer {
+        flex-direction: column-reverse;
+        height: 100%;
+    }
+
+    .landingBodyAboutLeft {
+        height: 700px;
+        width: 100%;
+        margin-top: 25px;
+    }
+
+    .landingBodyAboutRight {
+        height: 50%;
+        width: 100%;
+    }
+
+    .detailsBackdrop {
+        height: 2140px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-end;
+        background-color: rgba(0, 0, 0, 0.5);
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+        .detailsContainer {
+            min-height: 0px;
+            width: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: var(--black);
+            border-radius: 10px;
+            position: relative;
+            margin-bottom: 300px;
+            padding: 40px;
+        }
+
+            .detailsHeader {
+                font-size: 20px;
+                font-weight: bold;
+                margin-bottom: 30px;
+            }
+
+            .detailsText {
+                font-size: 16px;
+                line-height: 1.6;
+            }
+}
+
+@media screen and (max-width: 600px) {
+    .detailsContainer {
+        min-height: 0px;
+        width: 350px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background-color: var(--black);
+        border-radius: 10px;
+        position: relative;
+        margin-bottom: 300px;
+        padding: 40px;
+    }
+}
+
+@media screen and (max-width: 450px) {
+    .landingBodyHeroTitle {
+        width: 100%;
+        max-width: 500px;
+        font-size: 34px;
+        font-weight: bold;
+        color: white;
+        text-align: center;
+        margin-bottom: 40px;
+        text-shadow: 0 0 20px rgb(0, 0, 0);
+        padding: 0 10px;
+    }
+
+    .landingBodyAboutRightPic {
+        height: 300px;
+        width: auto;
+    }
+
+    .detailsBackdrop {
+        height: 2040px;
+        width: 100%;
+    }
+}
+
+@media screen and (max-width: 360px) {
+    .landingBodyAboutRightPic {
+        height: 250px;
+        width: auto;
+    }
+
+    .detailsBackdrop {
+        height: 1990px;
+        width: 100%;
+    }
+
+    .detailsContainer {
+        min-height: 0px;
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background-color: var(--black);
+        border-radius: 10px;
+        position: relative;
+        margin-bottom: 300px;
+        padding: 20px;
+    }
+
+    .landingBodyAboutRightText2 {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 25px;
+        width: 250px;
+        text-align: center;
+    }
+
+    .landingFooterContainerLink {
+        font-size: 16px;
+        margin-left: 15px;
+        margin-right: 15px;
+        cursor: pointer;
+    }
+}

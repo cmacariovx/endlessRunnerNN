@@ -116,9 +116,6 @@ function Landing() {
                         <img src={neuralNetworkPic} className="landingBodyAboutRightPic"/>
                     </div>
                 </div>
-                <div className="landingBodyHowToPlayContainer">
-
-                </div>
             </div>
             <div className="landingFooterContainer">
                 <a href="https://www.linkedin.com/in/carlos-macariooo/" className="landingFooterContainerLink">LinkedIn</a>
