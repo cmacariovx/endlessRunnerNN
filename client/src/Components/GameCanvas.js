@@ -274,7 +274,7 @@ function GameCanvas() {
 
 
         class Character {
-            constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0, brain = new NeuralNetwork([13, 10, 4])) {
+            constructor(x, y, width, height, scale = 1, imageSrc, frameCount, frameRate, offsetX = 0, offsetY = 0, hitboxOffsetX = 0, hitboxOffsetY = 0, brain = new NeuralNetwork([7, 10, 4])) {
                 this.x = x + offsetX
                 this.y = y + offsetY
                 this.width = width
@@ -350,7 +350,7 @@ function GameCanvas() {
 
                 let rayLengthsNormalized = []
 
-                for (let angle = -180; angle <= 0; angle += 15) {
+                for (let angle = -180; angle <= 0; angle += 30) {
                     const radians = angle * (Math.PI / 180)
                     const endX = startX + rayLength * Math.cos(radians)
                     const endY = startY - rayLength * Math.sin(radians)
@@ -382,9 +382,9 @@ function GameCanvas() {
                         gameCtx.stroke()
 
                         // Normalize the ray length and add it to the array
-                        rayLengthsNormalized.push(1 - (closestDistance / rayLength));
+                        rayLengthsNormalized.push(1 - (closestDistance / rayLength))
                     } else {
-                        rayLengthsNormalized.push(0);
+                        rayLengthsNormalized.push(0)
                     }
                 }
 
@@ -576,20 +576,29 @@ function GameCanvas() {
             }
 
             createInitialPopulation() {
-                const storedBestNeuralNetwork = localStorage.getItem('bestNeuralNetwork');
+                const storedBestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
 
                 if (storedBestNeuralNetwork) {
                     const bestBrain = JSON.parse(storedBestNeuralNetwork, (_, value) => {
                         return typeof value === 'string' && value.startsWith('function') ?
                             Function.call(null, `return ${value}`)() : value
-                    })
+                    });
 
                     const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
                     this.characters.push(bestCharacter)
 
-                    for (let i = 1; i < this.size; i++) {
+                    // Create 6 mutants of the stored best brain with 0.2 multiplier
+                    for (let i = 1; i <= 6; i++) {
                         const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
                         NeuralNetwork.mutate(mutatedBrain, 0.2)
+                        const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
+                        this.characters.push(character)
+                    }
+
+                    // Create 3 mutants of the stored best brain with 0.6 multiplier
+                    for (let i = 7; i < this.size; i++) {
+                        const mutatedBrain = JSON.parse(JSON.stringify(bestBrain))
+                        NeuralNetwork.mutate(mutatedBrain, 0.6)
                         const character = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, mutatedBrain)
                         this.characters.push(character)
                     }
@@ -617,15 +626,23 @@ function GameCanvas() {
 
                 const bestBrain = JSON.parse(storedBestNeuralNetwork, (_, value) => {
                     return typeof value === 'string' && value.startsWith('function') ?
-                        Function.call(null, `return ${value}`)() : value;
+                        Function.call(null, `return ${value}`)() : value
                 })
 
                 const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
                 this.characters[0] = bestCharacter
 
-                for (let i = 1; i < this.size; i++) {
+                // Create 6 mutants of the stored best brain
+                for (let i = 1; i <= 6; i++) {
                     const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
                     NeuralNetwork.mutate(newBrain, 0.2)
+                    this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
+                }
+
+                // Create 3 completely new characters
+                for (let i = 7; i < this.size; i++) {
+                    const newBrain = JSON.parse(JSON.stringify(bestCharacter.brain))
+                    NeuralNetwork.mutate(newBrain, 0.7)
                     this.characters[i] = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, newBrain)
                 }
             }
@@ -646,7 +663,7 @@ function GameCanvas() {
 
         async function runGenerations(generations) {
             const characterTemplate = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
-            const population = new Population(25, characterTemplate)
+            const population = new Population(10, characterTemplate)
 
             for (let generation = 0; generation < generations; generation++) {
                 console.log("Generation:", generation)
@@ -654,7 +671,7 @@ function GameCanvas() {
             }
         }
 
-        runGenerations(25)
+        runGenerations(50)
 
         function runCharacter(character) {
             return new Promise((resolve) => {
