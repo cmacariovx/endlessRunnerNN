@@ -1,17 +1,191 @@
 .gameCanvasContainer {
-    min-height: 100vh;
+    min-height: 1400px;
     height: 100%;
     width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    padding-bottom: 150px;
 }
+    .gameControlsContainer {
+        height: 270px;
+        width: 1024px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-top: 60px;
+    }
 
-    #gameCanvas {
+    .gameControlsContainerUpper {
+        height: 100px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid black;
+    }
+
+    .gameControlsContainerLower {
+        height: 100px;
+        width: 1024px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .gameControlsContainerLower2 {
+        height: 70px;
+        width: 1024px;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-end;
+    }
+
+        .gameControlStartButton {
+            height: 40px;
+            min-width: 100px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            background-color: rgb(65, 181, 129);
+            font-weight: bold;
+            padding: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .gameControlEndButton {
+            height: 40px;
+            min-width: 100px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            background-color: rgb(181, 65, 65);
+            font-weight: bold;
+            padding: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .gameControlApplyButton {
+            height: 40px;
+            min-width: 100px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            background-color: rgb(255, 255, 255);
+            color: var(--black);
+            font-weight: bold;
+            padding: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+            .crossThroughText {
+                text-decoration: line-through;
+                color: var(--darkRed);
+            }
+
+            .button-glow {
+                animation: glowing 0.5s infinite alternate;
+            }
+
+            @keyframes glowing {
+                0% {
+                    background-color: white;
+                    box-shadow: 0 0 5px white;
+                    color: var(--black);
+                }
+                    100% {
+                    background-color: black;
+                    box-shadow: 0 0 5px black;
+                    color: white;
+                }
+            }
+
+        .gameControlContainer {
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+
+            .gameControlText {
+                height: 20px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+
+            .gameControlInteract {
+                height: 60px;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+            }
+
+                .gameControlInteractIconContainer {
+                    height: 28px;
+                    width: 28px;
+                    border-radius: 50%;
+                    background-color: white;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                    .gameControlerInteractIcon {
+                        font-size: 16px;
+                        font-weight: bold;
+                        color: var(--black);
+                    }
+
+                    .gameControlerInteractIcon2 {
+                        font-size: 16px;
+                        font-weight: bold;
+                        color: var(--black);
+                        margin-bottom: 2px;
+                    }
+
+                    .gameControlInteractText {
+                        margin-left: 10px;
+                        margin-right: 10px;
+                    }
+
+    .gameCanvasContainerMain {
+        min-height: 576px;
+        min-width: 1024px;
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
+        margin-top: 40px;
+    }
+
+    .visualizerCanvasContainer {
+        min-height: 420px;
+        min-width: 420px;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        margin-top: 50px;
     }

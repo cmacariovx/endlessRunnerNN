@@ -1,11 +1,9 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 import backgroundMain from '../assets/demonwoodsmain.png'
 import floor1 from '../assets/OakWoodsLandscape/decorations/floor1.png'
 import floor2 from '../assets/OakWoodsLandscape/decorations/floor8.png'
 import fullIdle from '../assets/NightBorneCharacter/NightborneIdleMain.png'
-import idle1 from '../assets/NightBorneCharacter/idle1.png'
-import idle2 from '../assets/NightBorneCharacter/idle2.png'
 import fire from '../assets/fire_fx_v1.0/png/orange/loops/burning_loop_1.png'
 
 import './GameCanvas.css'
@@ -15,6 +13,147 @@ function GameCanvas() {
     const visualizerCanvasRef = useRef(null)
     const simulationStarted = useRef(false)
 
+    const [controls, setControls] = useState(false)
+    const [gameActive, setGameActive] = useState(false)
+    const [images, setImages] = useState({})
+    const [reload, setReload] = useState(false)
+
+    const [tempPopSize, setTempPopSize] = useState(10)
+    const [tempGenSize, setTempGenSize] = useState(10)
+    const [tempBrainVisualizer, setTempBrainVisualizer] = useState(true)
+    const [tempDrawSensors, setTempDrawSensors] = useState(true)
+    const [tempObsSpeed, setTempObsSpeed] = useState(2)
+    const [tempObsMin, setTempObsMin] = useState(150)
+    const [tempObsMax, setTempObsMax] = useState(350)
+    const [tempRandomObs, setTempRandomObs] = useState(true)
+
+    const [popSize, setPopSize] = useState(10)
+    const [genSize, setGenSize] = useState(10)
+    const [brainVisualizer, setBrainVisualizer] = useState(true)
+    const [drawSensors, setDrawSensors] = useState(true)
+    const [obsSpeed, setObsSpeed] = useState(2)
+    const [obsMin, setObsMin] = useState(150)
+    const [obsMax, setObsMax] = useState(350)
+    const [randomObs, setRandomObs] = useState(true)
+
+    const [tempChanged, setTempChanged] = useState(false)
+
+    function reloadGameState() {
+        setTempChanged(false)
+        setPopSize(tempPopSize)
+        setGenSize(tempGenSize)
+        setBrainVisualizer(tempBrainVisualizer)
+        setDrawSensors(tempDrawSensors)
+        setObsSpeed(tempObsSpeed)
+        setObsMin(tempObsMin)
+        setObsMax(tempObsMax)
+        setRandomObs(tempRandomObs)
+        !reload ? setReload(true) : setReload(false)
+    }
+
+    function changeTemp() {
+        if (!tempChanged) setTempChanged(true)
+    }
+
+    function loadImage(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.src = src
+            img.onload = () => resolve(img)
+            img.onerror = (err) => reject(err)
+        })
+    }
+
+    function increment1(operator) {
+        if (!controls) {
+            if (operator == "-" && tempPopSize >= 20) {
+                setTempPopSize((prev) => prev - 10)
+            }
+
+            if (operator == "+" && tempPopSize <= 90) {
+                setTempPopSize((prev) => prev + 10)
+            }
+
+            changeTemp()
+        }
+    }
+
+    function increment2(operator) {
+        if (!controls) {
+            if (operator == "-" && tempGenSize >= 10) {
+                setTempGenSize((prev) => prev - 5)
+            }
+
+            if (operator == "+" && tempGenSize <= 95) {
+                setTempGenSize((prev) => prev + 5)
+            }
+
+            changeTemp()
+        }
+    }
+
+    function increment3(operator) {
+        if (operator == "-" && tempObsSpeed >= 2) {
+            setTempObsSpeed((prev) => prev - 1)
+        }
+
+        if (operator == "+" && tempObsSpeed <= 4) {
+            setTempObsSpeed((prev) => prev + 1)
+        }
+
+        changeTemp()
+    }
+
+    function increment4(operator) {
+        if (tempRandomObs) {
+            if (operator == "-" && tempObsMin >= 175) {
+                setTempObsMin((prev) => prev - 25)
+            }
+
+            if (operator == "+" && tempObsMin <= 275) {
+                setTempObsMin((prev) => prev + 25)
+            }
+
+            changeTemp()
+        }
+    }
+
+    function increment5(operator) {
+        if (operator == "-" && tempObsMax >= 150) {
+            setTempObsMax((prev) => prev - 50)
+        }
+
+        if (operator == "+" && tempObsMax <= 550) {
+            setTempObsMax((prev) => prev + 50)
+        }
+
+        changeTemp()
+    }
+
+    function doNothing() {return}
+
+    useEffect(() => {
+        const loadImages = async () => {
+            try {
+                const characterImage = await loadImage(fullIdle)
+                const obstacleImage = await loadImage(fire)
+                const backgroundImage = await loadImage(backgroundMain)
+                // Load other images if necessary
+
+                setImages({
+                    character: characterImage,
+                    obstacle: obstacleImage,
+                    background: backgroundImage
+                    // Add other images if necessary
+                })
+            } catch (err) {
+                console.error("Failed to load images:", err)
+            }
+        };
+
+        loadImages()
+    }, [])
+
     useEffect(() => {
         let gameCanvas = gameCanvasRef.current
         let gameCtx = gameCanvas.getContext("2d")
@@ -22,16 +161,17 @@ function GameCanvas() {
         gameCanvas.height = 576
         gameCanvas.width = 1024
 
-        gameCtx.fillStyle = 'black'
+        gameCtx.fillStyle = '#141414'
         gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height)
 
         let visualizerCanvas = visualizerCanvasRef.current
         let visualizerCtx = visualizerCanvas.getContext("2d")
 
-        visualizerCanvas.height = 576
-        visualizerCanvas.width = 576
+        visualizerCanvas.height = 420
+        visualizerCanvas.width = 420
 
-        visualizerCtx.fillStyle = '#010409'
+        // visualizerCtx.fillStyle = '#010409'
+        visualizerCtx.fillStyle = '#141414'
         visualizerCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height)
 
         const gravity = 0.2
@@ -46,13 +186,14 @@ function GameCanvas() {
             }
 
             draw() {
-                gameCtx.drawImage(this.image, this.position.x, this.position.y)
+                gameCtx.drawImage(images.background, this.position.x, this.position.y)
             }
 
             update() {
                 this.draw()
             }
         }
+
 
         const background = new Background({
             position: {
@@ -61,6 +202,8 @@ function GameCanvas() {
             },
             imageSrc: backgroundMain
         })
+
+        if (Object.keys(images).length !== 0) background.draw()
 
         const keys = {
             a: {
@@ -212,7 +355,7 @@ function GameCanvas() {
                     currentTimes++
                 }
 
-                const nodeRadius = 18
+                const nodeRadius = 12
                 for (let i = 0; i < inputs.length; i++) {
                     const x = Visualizer.getNodeX(inputs, i, left, right)
                     ctx.beginPath()
@@ -307,7 +450,7 @@ function GameCanvas() {
                     height: 100
                 }
 
-                this.brain = brain
+                if (!controls) this.brain = brain
                 this.distance = 0
                 this.completed = false
             }
@@ -344,7 +487,7 @@ function GameCanvas() {
             drawSensors(obstacles) {
                 const rayLength = 400;
                 const rayColor = 'white'
-                const rayFill = 'black'
+                const rayFill = 'orange'
 
                 const startX = this.x + this.hitboxOffsetX + this.hitbox.width / 2
                 const startY = this.y + this.hitboxOffsetY + this.hitbox.height / 2
@@ -367,20 +510,24 @@ function GameCanvas() {
                         }
                     }
 
-                    gameCtx.strokeStyle = rayColor
-                    gameCtx.lineWidth = 2
-                    gameCtx.beginPath()
-                    gameCtx.moveTo(startX, startY)
-                    gameCtx.lineTo(endX, endY)
-                    gameCtx.stroke()
-
-                    if (closestIntersection) {
-                        gameCtx.strokeStyle = rayFill
+                    if (drawSensors) {
+                        gameCtx.strokeStyle = rayColor
                         gameCtx.lineWidth = 2
                         gameCtx.beginPath()
-                        gameCtx.moveTo(endX, endY)
-                        gameCtx.lineTo(closestIntersection.x, closestIntersection.y)
+                        gameCtx.moveTo(startX, startY)
+                        gameCtx.lineTo(endX, endY)
                         gameCtx.stroke()
+                    }
+
+                    if (closestIntersection) {
+                        if (drawSensors) {
+                            gameCtx.strokeStyle = rayFill
+                            gameCtx.lineWidth = 2
+                            gameCtx.beginPath()
+                            gameCtx.moveTo(endX, endY)
+                            gameCtx.lineTo(closestIntersection.x, closestIntersection.y)
+                            gameCtx.stroke()
+                        }
 
                         // Normalize the ray length and add it to the array
                         rayLengthsNormalized.push(1 - (closestDistance / rayLength))
@@ -389,13 +536,13 @@ function GameCanvas() {
                     }
                 }
 
-                return rayLengthsNormalized;
+                return rayLengthsNormalized
             }
 
             draw() {
                 if (this.imageLoaded) {
                     gameCtx.drawImage(
-                        this.image,
+                        images.character,
                         this.frameIndex * this.frameWidth,
                         0,
                         this.frameWidth,
@@ -408,9 +555,9 @@ function GameCanvas() {
                 }
 
                 // draw hitbox
-                gameCtx.strokeStyle = 'red'
-                gameCtx.lineWidth = 2
-                gameCtx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
+                // gameCtx.strokeStyle = 'red'
+                // gameCtx.lineWidth = 2
+                // gameCtx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
 
                 // Update the frame timer and index
                 this.frameTimer++
@@ -511,7 +658,7 @@ function GameCanvas() {
 
             draw() {
                 gameCtx.drawImage(
-                    this.image,
+                    images.obstacle,
                     this.frameIndex * this.frameWidth,
                     0,
                     this.frameWidth,
@@ -523,9 +670,9 @@ function GameCanvas() {
                 )
 
                 // draw hitbox
-                gameCtx.strokeStyle = 'red'
-                gameCtx.lineWidth = 2
-                gameCtx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
+                // gameCtx.strokeStyle = 'red'
+                // gameCtx.lineWidth = 2
+                // gameCtx.strokeRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height)
 
                 // Update the frame timer and index
                 this.frameTimer++
@@ -536,7 +683,7 @@ function GameCanvas() {
             }
 
             update() {
-                this.x -= 1.4 // 6 is not possible
+                this.x -= obsSpeed // 6 is not possible
 
                 if (this.x + this.width < 0) {
                     // this.x = canvas.width
@@ -672,78 +819,99 @@ function GameCanvas() {
             }
         }
 
+        const cancellationToken = { cancelled: false }
 
-        const n = 100
 
-        // runGenerations(100)
+        let character1
+
+        if (controls && gameActive) {
+            async function runChar() {
+                character1 = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
+                let distance = await runCharacter(character1, cancellationToken)
+                console.log(distance)
+            }
+
+            runChar()
+        }
+
+
+        const n = popSize
+        const genNum = genSize
+
+        if (!controls) {
+            if (gameActive) runGenerations(genNum)
+        }
 
         async function runGenerations(generations) {
             const characterTemplate = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
             const population = new Population(n, characterTemplate, 0.6, 0.3)
 
             for (let generation = 0; generation < generations; generation++) {
-                resetGameState()
-                console.log("Generation:", generation)
-                await gameLoop(population)
+                if (!cancellationToken.cancelled) {
+                    resetGameState()
+                    console.log("Generation:", generation)
+                    await gameLoop(population)
+                }
             }
+
+            setGameActive(false)
         }
 
         async function gameLoop(population) {
             resetGameState()
             console.log("Running characters:", population.characters.map((c, i) => `Character ${i}: ${c.brain.levels[1].biases}`))
-            await runCharacters(population.characters)
+            await runCharacters(population.characters, cancellationToken)
 
             population.storeBestNeuralNetwork()
             population.createNextGeneration()
         }
 
-        function runCharacters(characters) {
+        function runCharacters(characters, cancellationToken) {
             return new Promise((resolve) => {
-                const completedCharacters = [];
+                const completedCharacters = []
 
                 function loop() {
-                    background.update();
+                    background.update()
+                    if (!gameActive || cancellationToken.cancelled) {
+                        return resolve(completedCharacters)
+                    }
 
                     characters.forEach((character, index) => {
                         if (!character.completed) {
-                            character.draw();
+                            character.draw()
                             const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s));
-                            character.update();
+                            character.update()
 
-                            // Visualizer.drawNetwork(visualizerCtx, character.brain);
+                            // Visualizer.drawNetwork(visualizerCtx, character.brain)
 
-                            character.velX = 0;
+                            character.velX = 0
 
-                            const outputs = NeuralNetwork.feedForward(rayData, character.brain);
+                            const outputs = NeuralNetwork.feedForward(rayData, character.brain)
 
                             if (outputs[0] === 1) {
-                                character.moveLeft();
+                                character.moveLeft()
                             }
                             if (outputs[1] === 1) {
-                                character.jump();
+                                character.jump()
                             }
                             if (outputs[2] === 1) {
-                                character.moveRight();
+                                character.moveRight()
                             }
                             if (outputs[3] === 1) {
-                                character.duck();
+                                character.duck()
                             }
 
-                            character.distance++;
+                            character.distance++
                         }
-                    });
+                    })
 
-                    if (
-                        obstacles.length === 0 ||
-                        (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) <
-                        gameCanvas.width - (Math.floor(Math.random() * 300) + 100)
-                    ) {
-                        createObstacle();
+                    if (obstacles.length === 0 || (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) < gameCanvas.width) {
+                        createObstacle()
                     }
 
                     for (const [index, obstacle] of obstacles.entries()) {
-                        obstacle.draw();
-                        obstacle.update();
+                        obstacle.draw()
+                        obstacle.update()
 
                         characters.forEach((character, i) => {
                             if (
@@ -754,37 +922,36 @@ function GameCanvas() {
                                 character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
                             ) {
                                 // Collision detected
-                                character.completed = true;
-                                completedCharacters.push(character);
+                                character.completed = true
+                                completedCharacters.push(character)
                             }
                         });
 
                         if (obstacle.x + obstacle.width < 0) {
-                            obstacles.splice(index, 1);
+                            obstacles.splice(index, 1)
                         }
                     }
 
                     if (completedCharacters.length < characters.length && characters.every(char => char.distance <= 32100)) {
-                        requestAnimationFrame(loop);
+                        requestAnimationFrame(loop)
                     } else {
-                        requestAnimationFrame(() => resolve(completedCharacters));
+                        requestAnimationFrame(() => resolve(completedCharacters))
                     }
                 }
 
-                loop();
-            });
+                loop()
+            })
         }
 
-
         function createObstacle() {
-            const minWidth = 80;
-            const maxWidth = minWidth + 100; // Adjust this value to control the maximum distance between obstacles
-            const x = gameCanvas.width + (Math.floor(Math.random() * 150)) + minWidth
-            const y = gameCanvas.height - 166;
-            const width = 50;
-            const height = 50;
-            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26);
-            obstacles.push(obstacle);
+            const minWidth = obsMin
+            const maxWidth = obsMax - minWidth
+            const x = (randomObs ? gameCanvas.width + (Math.floor(Math.random() * maxWidth)) + minWidth : gameCanvas.width + maxWidth)
+            const y = gameCanvas.height - 166
+            const width = 50
+            const height = 50
+            const obstacle = new Obstacle(x, y, width, height, 2.4, fire, 8, 12, 0, 0, 12, 26)
+            obstacles.push(obstacle)
         }
 
         function resetGameState() {
@@ -914,75 +1081,138 @@ function GameCanvas() {
 
         drawFloor()
 
-        // window.addEventListener('keydown', (event) => {
-        //     switch (event.key) {
-        //         case 'a':
-        //             keys.a.pressed = true
-        //             lastKey = 'a'
-        //             break
-        //         case 'd':
-        //             keys.d.pressed = true
-        //             lastKey = 'd'
-        //             break
-        //         case 'w':
-        //             character.jump()
-        //             break
-        //         case 's':
-        //             character.duck()
-        //             break
-        //         case 'A':
-        //             keys.a.pressed = true
-        //             lastKey = 'a'
-        //             break
-        //         case 'D':
-        //             keys.d.pressed = true
-        //             lastKey = 'd'
-        //             break
-        //         case 'W':
-        //             character.jump()
-        //             break
-        //         case 'S':
-        //             character.duck()
-        //             break
-        //         case 'ArrowLeft':
-        //             keys.a.pressed = true
-        //             lastKey = 'a'
-        //             break
-        //         case 'ArrowRight':
-        //             keys.d.pressed = true
-        //             lastKey = 'd'
-        //             break
-        //         case 'ArrowUp':
-        //             character.jump()
-        //             break
-        //         case 'ArrowDown':
-        //             character.duck()
-        //             break
-        //     }
-        // })
+        function runCharacter(character, cancellationToken) {
+            return new Promise((resolve) => {
+                function loop() {
+                    if (!gameActive || cancellationToken.cancelled) {
+                        return resolve(character.distance)
+                    }
 
-        // window.addEventListener('keyup', (event) => {
-        //     switch (event.key) {
-        //         case 'a':
-        //             keys.a.pressed = false
-        //             break
-        //         case 'd':
-        //             keys.d.pressed = false
-        //             break
-        //         case 'A':
-        //             keys.a.pressed = false
-        //             break
-        //         case 'D':
-        //             keys.d.pressed = false
-        //             break
-        //         case 'ArrowLeft':
-        //             keys.a.pressed = false
-        //             break
-        //         case 'ArrowRight':
-        //             keys.d.pressed = false
-        //             break
-        //     }
-        // })
+                    background.update()
+
+                    if (!character.completed) {
+                        character.draw()
+                        character.update()
+
+                        character.velX = 0
+
+                        if (keys.a.pressed && lastKey == 'a') {
+                            character.moveLeft()
+                        }
+
+                        if (keys.d.pressed && lastKey == 'd') {
+                            character.moveRight()
+                        }
+
+                        character.distance++
+                    }
+
+                    if (obstacles.length === 0 || (obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width) < gameCanvas.width) {
+                        createObstacle()
+                    }
+
+                    for (const [index, obstacle] of obstacles.entries()) {
+                        obstacle.draw()
+                        obstacle.update()
+
+                        if (!character.completed &&
+                            character.hitbox.x < obstacle.hitbox.x + obstacle.hitbox.width &&
+                            character.hitbox.x + character.hitbox.width > obstacle.hitbox.x &&
+                            character.hitbox.y < obstacle.hitbox.y + obstacle.hitbox.height &&
+                            character.hitbox.y + character.hitbox.height > obstacle.hitbox.y
+                        ) {
+                            // Collision detected
+                            character.completed = true
+                        }
+
+                        if (obstacle.x + obstacle.width < 0) {
+                            obstacles.splice(index, 1)
+                        }
+                    }
+
+                    if (!character.completed) {
+                        requestAnimationFrame(loop)
+                    }
+                    else {
+                        requestAnimationFrame(() => resolve(character.distance))
+                        setGameActive(false)
+                    }
+                }
+                loop()
+            })
+        }
+
+        if (controls && gameActive) {
+            window.addEventListener('keydown', (event) => {
+                switch (event.key) {
+                    case 'a':
+                        keys.a.pressed = true
+                        lastKey = 'a'
+                        break
+                    case 'd':
+                        keys.d.pressed = true
+                        lastKey = 'd'
+                        break
+                    case 'w':
+                        character1.jump()
+                        break
+                    case 's':
+                        character1.duck()
+                        break
+                    case 'A':
+                        keys.a.pressed = true
+                        lastKey = 'a'
+                        break
+                    case 'D':
+                        keys.d.pressed = true
+                        lastKey = 'd'
+                        break
+                    case 'W':
+                        character1.jump()
+                        break
+                    case 'S':
+                        character1.duck()
+                        break
+                    case 'ArrowLeft':
+                        keys.a.pressed = true
+                        lastKey = 'a'
+                        break
+                    case 'ArrowRight':
+                        keys.d.pressed = true
+                        lastKey = 'd'
+                        break
+                    case 'ArrowUp':
+                        character1.jump()
+                        break
+                    case 'ArrowDown':
+                        character1.duck()
+                        break
+                }
+            })
+
+            window.addEventListener('keyup', (event) => {
+                switch (event.key) {
+                    case 'a':
+                        keys.a.pressed = false
+                        break
+                    case 'd':
+                        keys.d.pressed = false
+                        break
+                    case 'A':
+                        keys.a.pressed = false
+                        break
+                    case 'D':
+                        keys.d.pressed = false
+                        break
+                    case 'ArrowLeft':
+                        keys.a.pressed = false
+                        break
+                    case 'ArrowRight':
+                        keys.d.pressed = false
+                        break
+                }
+            })
+        }
 
         // {
         //     "levels": [
@@ -1275,13 +1505,140 @@ function GameCanvas() {
         //         }
         //     ]
         // }
-    }, [])
+
+        return () => {
+            cancellationToken.cancelled = true
+        }
+    }, [controls, gameActive, images, reload])
 
 
     return (
         <div className="gameCanvasContainer">
-            <canvas id="gameCanvas" ref={gameCanvasRef}/>
-            <canvas id="visualizerCanvas" ref={visualizerCanvasRef}/>
+            <div className="gameControlsContainer">
+                <div className="gameControlsContainerUpper">
+                    <div className="gameControlContainer">
+                        <p className="gameControlText">Character's Brain</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => !controls ? setControls(true) : setControls(false)}>←</p>
+                            </div>
+                            <p className="gameControlInteractText">{!controls ? "Neural Network" : "Yours"}</p>
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => !controls ? setControls(true) : setControls(false)}>→</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}>Population Size</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer" onClick={() => increment1("-")}>
+                                <p className="gameControlerInteractIcon">-</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempPopSize}</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => increment1("+")}>
+                                <p className="gameControlerInteractIcon">+</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}># Generations</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer" onClick={() => increment2("-")}>
+                                <p className="gameControlerInteractIcon">-</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempGenSize}</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => increment2("+")}>
+                                <p className="gameControlerInteractIcon">+</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className={!controls ? "gameControlText" : "gameControlText crossThroughText"}>Brain Visualizer</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => {!controls ? !tempBrainVisualizer ? setTempBrainVisualizer(true) : setTempBrainVisualizer(false) : doNothing(); changeTemp()}}>←</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempBrainVisualizer ? "True" : "False"}</p>
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => {!controls ? !tempBrainVisualizer ? setTempBrainVisualizer(true) : setTempBrainVisualizer(false) : doNothing(); changeTemp()}}>→</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className="gameControlText">Draw Sensors</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>←</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempDrawSensors ? "True" : "False"}</p>
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => {!tempDrawSensors ? setTempDrawSensors(true) : setTempDrawSensors(false); changeTemp()}}>→</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="gameControlsContainerLower">
+                    <div className="gameControlContainer">
+                        <p className="gameControlText">Obstacle Speed</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer" onClick={() => increment3("-")}>
+                                <p className="gameControlerInteractIcon">-</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempObsSpeed}</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => increment3("+")}>
+                                <p className="gameControlerInteractIcon">+</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className={tempRandomObs ? "gameControlText" : "gameControlText crossThroughText"}>Obstacle Min Seperation</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer" onClick={() => increment4("-")}>
+                                <p className="gameControlerInteractIcon">-</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempObsMin}</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => increment4("+")}>
+                                <p className="gameControlerInteractIcon">+</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className="gameControlText">Obstacle Max Seperation</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer" onClick={() => increment5("-")}>
+                                <p className="gameControlerInteractIcon">-</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempObsMax}</p>
+                            <div className="gameControlInteractIconContainer" onClick={() => increment5("+")}>
+                                <p className="gameControlerInteractIcon">+</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="gameControlContainer">
+                        <p className="gameControlText">Random Obstacle Seperation</p>
+                        <div className="gameControlInteract">
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>←</p>
+                            </div>
+                            <p className="gameControlInteractText">{tempRandomObs ? "True" : "False"}</p>
+                            <div className="gameControlInteractIconContainer">
+                                <p className="gameControlerInteractIcon2" onClick={() => {!tempRandomObs ? setTempRandomObs(true) : setTempRandomObs(false); changeTemp()}}>→</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="gameControlsContainerLower2">
+                    <button className="gameControlStartButton" onClick={() => setGameActive(true)}>Start Game</button>
+                    <button className="gameControlEndButton" onClick={() => setGameActive(false)}>End Game</button>
+                    <button className={!tempChanged ? "gameControlApplyButton" : "gameControlApplyButton button-glow"} onClick={reloadGameState}>Apply Changes</button>
+                </div>
+            </div>
+            <div className="gameCanvasContainerMain">
+                <canvas id="gameCanvas" ref={gameCanvasRef}/>
+            </div>
+            <div className="visualizerCanvasContainer">
+                <canvas id="visualizerCanvas" ref={visualizerCanvasRef}/>
+            </div>
         </div>
     )
 }
