@@ -98,7 +98,7 @@ function Landing() {
             </div>
             <div className="landingBodyContainer">
                 <div className="landingBodyHeroContainer">
-                    <p className="landingBodyHeroTitle">An intelligent-ish character roaming a spooky forest.</p>
+                    <p className="landingBodyHeroTitle">An intelligent character roaming a spooky forest.</p>
                     <button className="landingBodyHeroButton" onClick={toGameHandler}>Play Now</button>
                 </div>
                 <div className="landingBodyAboutContainer">
