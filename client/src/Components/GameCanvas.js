@@ -22,24 +22,27 @@ function GameCanvas() {
     const [tempGenSize, setTempGenSize] = useState(10)
     const [tempBrainVisualizer, setTempBrainVisualizer] = useState(true)
     const [tempDrawSensors, setTempDrawSensors] = useState(true)
-    const [tempObsSpeed, setTempObsSpeed] = useState(2)
+    const [tempObsSpeed, setTempObsSpeed] = useState(3)
     const [tempObsMin, setTempObsMin] = useState(150)
     const [tempObsMax, setTempObsMax] = useState(350)
     const [tempRandomObs, setTempRandomObs] = useState(true)
+    const [tempNewNeuralNetwork, setTempNewNeuralNetwork] = useState(true)
 
     const [popSize, setPopSize] = useState(50)
     const [genSize, setGenSize] = useState(10)
     const [brainVisualizer, setBrainVisualizer] = useState(true)
     const [drawSensors, setDrawSensors] = useState(true)
-    const [obsSpeed, setObsSpeed] = useState(2)
+    const [obsSpeed, setObsSpeed] = useState(3)
     const [obsMin, setObsMin] = useState(150)
     const [obsMax, setObsMax] = useState(350)
     const [randomObs, setRandomObs] = useState(true)
+    const [newNeuralNetwork, setNewNeuralNetwork] = useState(true)
 
     const [tempChanged, setTempChanged] = useState(false)
 
     const [maxDistance, setMaxDistance] = useState(0)
     const [singleMaxDistance, setSingleMaxDistance] = useState(0)
+    const [currentGeneration, setCurrentGeneration] = useState(0)
 
     const [bestBrain, setBestBrain] = useState()
 
@@ -53,6 +56,8 @@ function GameCanvas() {
         setObsMin(tempObsMin)
         setObsMax(tempObsMax)
         setRandomObs(tempRandomObs)
+        setNewNeuralNetwork(tempNewNeuralNetwork)
+        setCurrentGeneration(0)
         setMaxDistance(0)
         setBestBrain()
         setGameActive(true)
@@ -61,15 +66,6 @@ function GameCanvas() {
 
     function changeTemp() {
         if (!tempChanged) setTempChanged(true)
-    }
-
-    function loadImage(src) {
-        return new Promise((resolve, reject) => {
-            const img = new Image()
-            img.src = src
-            img.onload = () => resolve(img)
-            img.onerror = (err) => reject(err)
-        })
     }
 
     function increment1(operator) {
@@ -127,11 +123,11 @@ function GameCanvas() {
     }
 
     function increment5(operator) {
-        if (operator == "-" && tempObsMax >= 150) {
+        if (operator == "-" && tempObsMax >= 200) {
             setTempObsMax((prev) => prev - 50)
         }
 
-        if (operator == "+" && tempObsMax <= 550) {
+        if (operator == "+" && tempObsMax <= 450) {
             setTempObsMax((prev) => prev + 50)
         }
 
@@ -141,23 +137,36 @@ function GameCanvas() {
     function doNothing() {return}
 
     useEffect(() => {
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image()
+                img.src = src
+                img.onload = () => resolve(img)
+                img.onerror = (err) => reject(err)
+            })
+        }
+
         const loadImages = async () => {
             try {
                 const characterImage = await loadImage(fullIdle)
                 const obstacleImage = await loadImage(fire)
                 const backgroundImage = await loadImage(backgroundMain)
+                const floor1Image = await loadImage(floor1)
+                const floor2Image = await loadImage(floor2)
                 // Load other images if necessary
 
                 setImages({
                     character: characterImage,
                     obstacle: obstacleImage,
-                    background: backgroundImage
+                    background: backgroundImage,
+                    floor1: floor1Image,
+                    floor2: floor2Image
                     // Add other images if necessary
                 })
             } catch (err) {
                 console.error("Failed to load images:", err)
             }
-        };
+        }
 
         loadImages()
     }, [])
@@ -201,6 +210,11 @@ function GameCanvas() {
                 this.draw()
             }
         }
+
+        let mainFloorsArr = []
+        let subFloorsArr = []
+        let subFloorsArr2 = []
+        let subFloorsArr3 = []
 
 
         const background = new Background({
@@ -260,13 +274,7 @@ function GameCanvas() {
                     for (let j = 0; j < level.inputs.length; j++) {
                         sum += level.inputs[j] * level.weights[j][i]
                     }
-
-                    if (sum > level.biases[i]) {
-                        level.outputs[i] = 1
-                    }
-                    else {
-                        level.outputs[i] = 0
-                    }
+                    level.outputs[i] = elu(sum + level.biases[i])
                 }
 
                 return level.outputs
@@ -285,15 +293,15 @@ function GameCanvas() {
             }
 
             static feedForward(givenInputs, network) {
-                let outputs = Level.feedForward(
-                    givenInputs, network.levels[0]
-                )
+                let outputs = Level.feedForward(givenInputs, network.levels[0])
 
-                for (let i = 1; i < network.levels.length; i++) {
-                    outputs = Level.feedForward(
-                        outputs, network.levels[i]
-                    )
+                for (let i = 1; i < network.levels.length - 1; i++) {
+                    outputs = Level.feedForward(outputs, network.levels[i])
                 }
+
+                // Apply softmax to the output layer
+                outputs = Level.feedForward(outputs, network.levels[network.levels.length - 1])
+                outputs = softmax(outputs)
 
                 return outputs
             }
@@ -310,6 +318,16 @@ function GameCanvas() {
                     }
                 })
             }
+        }
+
+        function elu(x, alpha = 1) {
+            return x >= 0 ? x : alpha * (Math.exp(x) - 1)
+        }
+
+        function softmax(arr) {
+            const expArr = arr.map(x => Math.exp(x))
+            const sum = expArr.reduce((a, b) => a + b)
+            return expArr.map(x => x / sum)
         }
 
         let currentTimes = 0
@@ -349,11 +367,11 @@ function GameCanvas() {
                             ctx.moveTo(
                                 Visualizer.getNodeX(inputs, i, left, right),
                                 bottom
-                            );
+                            )
                             ctx.lineTo(
                                 Visualizer.getNodeX(outputs, j, left, right),
                                 top
-                            );
+                            )
                             ctx.lineWidth = 1
                             ctx.strokeStyle = 'lightblue'
                             ctx.stroke()
@@ -440,10 +458,10 @@ function GameCanvas() {
                 this.onGround = true
                 this.image = new Image()
                 this.image.src = imageSrc
-                this.imageLoaded = false;
+                this.imageLoaded = false
                 this.image.addEventListener('load', () => {
-                  this.imageLoaded = true;
-                });
+                  this.imageLoaded = true
+                })
                 this.frameCount = frameCount // total number of frames in the sprite sheet
                 this.frameWidth = this.image.width / frameCount // frame width within the sprite sheet
                 this.frameHeight = this.image.height // frame height within the sprite sheet
@@ -492,8 +510,26 @@ function GameCanvas() {
                 }
             }
 
+            decideAction(outputs) {
+                const [moveLeft, moveRight, jump, duck] = outputs
+                const maxOutput = Math.max(moveLeft, moveRight, jump, duck)
+
+                if (maxOutput === moveLeft) {
+                    this.moveLeft()
+                }
+                else if (maxOutput === moveRight) {
+                    this.moveRight()
+                }
+                else if (maxOutput === jump) {
+                    this.jump()
+                }
+                else if (maxOutput === duck) {
+                    this.duck()
+                }
+            }
+
             drawSensors(obstacles) {
-                const rayLength = 400;
+                const rayLength = 400
                 const rayColor = 'white'
                 const rayFill = 'orange'
 
@@ -548,7 +584,7 @@ function GameCanvas() {
             }
 
             draw() {
-                if (this.imageLoaded) {
+                if (Object.keys(images).length !== 0) {
                     gameCtx.drawImage(
                         images.character,
                         this.frameIndex * this.frameWidth,
@@ -647,7 +683,7 @@ function GameCanvas() {
                 this.hitboxOffsetX = hitboxOffsetX
                 this.hitboxOffsetY = hitboxOffsetY
                 this.velY = 0
-                this.velX = 0
+                this.velX = obsSpeed
                 this.image = new Image()
                 this.image.src = imageSrc
                 this.frameCount = frameCount // total number of frames in the sprite sheet
@@ -691,7 +727,7 @@ function GameCanvas() {
             }
 
             update() {
-                this.x -= obsSpeed // 6 is not possible
+                this.x -= this.velX // 6 is not possible
 
                 if (this.x + this.width < 0) {
                     // this.x = canvas.width
@@ -707,18 +743,59 @@ function GameCanvas() {
         }
 
         let obstacles = []
+
         let currentMaxDistance = 0
         let bestBrain
 
+        let storedBestNeuralNetwork
+        let storedBestMaxDistance
+
+        async function saveBrain() {
+            const response = await fetch("http://localhost:5000/main/saveBrain", {
+                method: "POST",
+                body: JSON.stringify({
+                    brain: bestBrain,
+                    maxDistance: currentMaxDistance
+                }),
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            })
+
+            const data = await response.json()
+            return data
+        }
+
+        async function fetchBrain() {
+            const response = await fetch("http://localhost:5000/main/fetchBrain", {
+                method: "POST",
+                body: JSON.stringify({
+                    newNeuralNetwork: newNeuralNetwork
+                }),
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            })
+
+            const data = await response.json()
+            return data
+        }
+
         class Population {
-            constructor(size, characterTemplate, ratio1 = 0.6, ratio2 = 0.3) {
+            constructor(size, characterTemplate, ratio1 = 0.7, ratio2 = 0.2) {
                 this.size = size
                 this.characterTemplate = characterTemplate
-                this.characters = []
                 this.ratio1 = ratio1
                 this.ratio2 = ratio2
+                this.characters = []
 
-                this.createInitialPopulation()
+                // this.createInitialPopulation()
+            }
+
+            static async create(size, characterTemplate, ratio1 = 0.7, ratio2 = 0.2) {
+                const population = new this(size, characterTemplate, ratio1, ratio2)
+                await population.createInitialPopulation()
+                return population
             }
 
             storeBestNeuralNetwork() {
@@ -737,16 +814,26 @@ function GameCanvas() {
                         return typeof value === 'function' ? value.toString() : value
                     }))
                 }
+
+                if (bestCharacter.distance > storedBestMaxDistance) {
+                    saveBrain()
+                }
             }
 
-            createInitialPopulation() {
-                const storedBestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
+            async createInitialPopulation() {
+                storedBestNeuralNetwork = await fetchBrain()
 
-                if (storedBestNeuralNetwork) {
-                    const bestBrain = JSON.parse(storedBestNeuralNetwork, (_, value) => {
-                        return typeof value === 'string' && value.startsWith('function') ?
-                            Function.call(null, `return ${value}`)() : value
-                    });
+                // const storedBestNeuralNetwork = localStorage.getItem('bestNeuralNetwork')
+
+                if (!newNeuralNetwork && storedBestNeuralNetwork) {
+                    storedBestMaxDistance = storedBestNeuralNetwork.maxDistance
+                    storedBestNeuralNetwork = JSON.parse(JSON.stringify(storedBestNeuralNetwork.brain))
+                    // const bestBrain = JSON.parse(storedBestNeuralNetwork, (_, value) => {
+                    //     return typeof value === 'string' && value.startsWith('function') ?
+                    //         Function.call(null, `return ${value}`)() : value
+                    // })
+
+                    const bestBrain = storedBestNeuralNetwork
 
                     const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
                     this.characters.push(bestCharacter)
@@ -804,6 +891,8 @@ function GameCanvas() {
                         Function.call(null, `return ${value}`)() : value
                 })
 
+                // const bestBrain = JSON.parse(JSON.stringify(storedBestNeuralNetwork))
+
                 const bestCharacter = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0, bestBrain)
                 this.characters[0] = bestCharacter
 
@@ -858,24 +947,23 @@ function GameCanvas() {
 
         async function runGenerations(generations) {
             const characterTemplate = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
-            const population = new Population(n, characterTemplate, 0.6, 0.3)
+            const population = await Population.create(n, characterTemplate, 0.7, 0.2)
 
             for (let generation = 0; generation < generations; generation++) {
                 if (!cancellationToken.cancelled) {
+                    setCurrentGeneration(generation)
+                    setMaxDistance(currentMaxDistance)
+                    setBestBrain(bestBrain)
                     resetGameState()
-                    console.log("Generation:", generation)
                     await gameLoop(population)
                 }
             }
 
-            setMaxDistance(currentMaxDistance)
-            setBestBrain(bestBrain)
             setGameActive(false)
         }
 
         async function gameLoop(population) {
             resetGameState()
-            console.log("Running characters:", population.characters.map((c, i) => `Character ${i}: ${c.brain.levels[1].biases}`))
             await runCharacters(population.characters, cancellationToken)
 
             population.storeBestNeuralNetwork()
@@ -894,6 +982,7 @@ function GameCanvas() {
 
                 function loop() {
                     background.update()
+                    drawFloor()
 
                     if (!gameActive || cancellationToken.cancelled) {
                         return resolve(completedCharacters)
@@ -903,26 +992,13 @@ function GameCanvas() {
 
                     characters.forEach((character, index) => {
                         if (!character.completed) {
-                            character.draw()
-                            const rayData = character.drawSensors(obstacles).map((s) => (s === null ? 0 : s));
-                            character.update()
-
                             character.velX = 0
 
-                            const outputs = NeuralNetwork.feedForward(rayData, character.brain)
-
-                            if (outputs[0] === 1) {
-                                character.moveLeft()
-                            }
-                            if (outputs[1] === 1) {
-                                character.jump()
-                            }
-                            if (outputs[2] === 1) {
-                                character.moveRight()
-                            }
-                            if (outputs[3] === 1) {
-                                character.duck()
-                            }
+                            const inputs = character.drawSensors(obstacles)
+                            const outputs = NeuralNetwork.feedForward(inputs, character.brain)
+                            character.decideAction(outputs)
+                            character.update()
+                            character.draw()
 
                             character.distance++
                         }
@@ -948,21 +1024,20 @@ function GameCanvas() {
                                 character.completed = true
                                 completedCharacters.push(character)
 
-
                                 // Remove character from charactersCopy based on id
-                                const indexToRemove = charactersCopy.findIndex((charCopy) => charCopy.id === i);
+                                const indexToRemove = charactersCopy.findIndex((charCopy) => charCopy.id === i)
                                 if (indexToRemove !== -1) {
                                     charactersCopy.splice(indexToRemove, 1)
                                 }
                             }
-                        });
+                        })
 
                         if (obstacle.x + obstacle.width < 0) {
                             obstacles.splice(index, 1)
                         }
                     }
 
-                    if (completedCharacters.length < characters.length && characters.every(char => char.distance <= 32100)) {
+                    if (completedCharacters.length < characters.length && characters.every(char => char.distance <= 50000)) {
                         requestAnimationFrame(loop)
                     } else {
                         requestAnimationFrame(() => resolve(completedCharacters))
@@ -999,17 +1074,37 @@ function GameCanvas() {
             }
 
             draw() {
-                gameCtx.drawImage(this.image, this.position.x, this.position.y)
+                gameCtx.drawImage(images.floor1, this.position.x, this.position.y)
             }
 
             update() {
                 this.position.x += this.velocity.x
                 if (this.position.x < -72) this.position.x = 1024
-                this.draw()
+                if (Object.keys(images).length !== 0) this.draw()
             }
         }
 
-        let mainFloorsArr = []
+        class Floor2 {
+            constructor({ position, velocity, imageSrc }) {
+                this.position = position
+                this.height = 150
+                this.width = 50
+                this.image = new Image()
+                this.image.src = imageSrc
+                this.velocity = velocity
+            }
+
+            draw() {
+                gameCtx.drawImage(images.floor2, this.position.x, this.position.y)
+            }
+
+            update() {
+                this.position.x += this.velocity.x
+                if (this.position.x < -72) this.position.x = 1024
+                if (Object.keys(images).length !== 0) this.draw()
+            }
+        }
+
         let xPosition1 = 954
 
         for (let i = 0; i < 16; i++) {
@@ -1028,11 +1123,10 @@ function GameCanvas() {
             xPosition1 -= 71
         }
 
-        let subFloorsArr = []
         let xPosition2 = 954
 
         for (let i = 0; i < 16; i++) {
-            subFloorsArr.push(new Floor({
+            subFloorsArr.push(new Floor2({
                 position: {
                     x: xPosition2,
                     y: 552
@@ -1047,11 +1141,10 @@ function GameCanvas() {
             xPosition2 -= 71
         }
 
-        let subFloorsArr2 = []
         let xPosition3 = 954
 
         for (let i = 0; i < 16; i++) {
-            subFloorsArr2.push(new Floor({
+            subFloorsArr2.push(new Floor2({
                 position: {
                     x: xPosition3,
                     y: 530
@@ -1066,11 +1159,10 @@ function GameCanvas() {
             xPosition3 -= 71
         }
 
-        let subFloorsArr3 = []
         let xPosition4 = 954
 
         for (let i = 0; i < 16; i++) {
-            subFloorsArr3.push(new Floor({
+            subFloorsArr3.push(new Floor2({
                 position: {
                     x: xPosition4,
                     y: 508
@@ -1085,9 +1177,8 @@ function GameCanvas() {
             xPosition4 -= 71
         }
 
-
         function drawFloor() {
-            window.requestAnimationFrame(drawFloor)
+            // window.requestAnimationFrame(drawFloor)
             for (let i = 0; i < mainFloorsArr.length; i++) {
                 let floor = mainFloorsArr[i]
                 floor.update()
@@ -1109,8 +1200,6 @@ function GameCanvas() {
             }
         }
 
-        drawFloor()
-
         function runCharacter(character, cancellationToken) {
             return new Promise((resolve) => {
                 function loop() {
@@ -1119,6 +1208,7 @@ function GameCanvas() {
                     }
 
                     background.update()
+                    drawFloor()
 
                     if (!character.completed) {
                         character.draw()
@@ -1243,298 +1333,6 @@ function GameCanvas() {
                 }
             })
         }
-
-        // {
-        //     "levels": [
-        //         {
-        //             "inputs": [
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0.6569999999999996,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0.13108784486961322,
-        //                 0,
-        //                 0
-        //             ],
-        //             "outputs": [
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 1,
-        //                 1,
-        //                 0
-        //             ],
-        //             "biases": [
-        //                 0.4032067461522169,
-        //                 0.1954904497764104,
-        //                 0.3412048370929178,
-        //                 0.20777620619494164,
-        //                 0.26520211183568476,
-        //                 0.3347684396440648,
-        //                 0.20766068907557858,
-        //                 -0.9421886795821076,
-        //                 0.020927476441136753,
-        //                 0.08442333218677936
-        //             ],
-        //             "weights": [
-        //                 [
-        //                     -0.05730355254679259,
-        //                     -0.0940642330754699,
-        //                     0.1918229590037267,
-        //                     0.21402866838240067,
-        //                     -0.003340728131094428,
-        //                     -0.36902377654743,
-        //                     0.31842653448292746,
-        //                     -0.03435372081333103,
-        //                     0.5100708281921316,
-        //                     0.12611586646300116
-        //                 ],
-        //                 [
-        //                     0.12402144047402103,
-        //                     0.22148436398603255,
-        //                     0.3042248009846805,
-        //                     -0.1816006559221747,
-        //                     0.481860720933587,
-        //                     0.036735730875665916,
-        //                     -0.056084818782801915,
-        //                     0.22961860604511902,
-        //                     -0.09860335687569667,
-        //                     -0.5313673773542387
-        //                 ],
-        //                 [
-        //                     -0.2254004102037734,
-        //                     0.07040713779262664,
-        //                     -0.18991618076360278,
-        //                     -0.14588686132904669,
-        //                     -0.00013401997736937898,
-        //                     -0.1699919522211895,
-        //                     -0.027503422041739375,
-        //                     0.2504357592613763,
-        //                     -0.2509181988740524,
-        //                     0.48813547995887163
-        //                 ],
-        //                 [
-        //                     -0.3393134846011402,
-        //                     0.18739028780116332,
-        //                     0.13676150081729826,
-        //                     -0.5695948906073739,
-        //                     0.4717075017155356,
-        //                     0.48415845885526404,
-        //                     -0.48975093652676005,
-        //                     0.016113018238467502,
-        //                     0.05606642968557421,
-        //                     -0.5436064771683139
-        //                 ],
-        //                 [
-        //                     -0.30303843230187594,
-        //                     -0.04621925831370895,
-        //                     0.3167049691479175,
-        //                     0.044835411805040165,
-        //                     0.17049906934218295,
-        //                     -0.11004273580480553,
-        //                     0.10442386888137722,
-        //                     0.29821050610223915,
-        //                     0.565845876433591,
-        //                     0.0064604992617361134
-        //                 ],
-        //                 [
-        //                     -0.19196590338709113,
-        //                     0.2710072219220361,
-        //                     -0.15088554886876288,
-        //                     -0.256037530496709,
-        //                     -0.21578833099833977,
-        //                     -0.0760856204456252,
-        //                     0.22270966060785172,
-        //                     0.3045527321696524,
-        //                     0.16446831725705324,
-        //                     0.5625605820177594
-        //                 ],
-        //                 [
-        //                     0.34153323148535575,
-        //                     -0.12012537610913104,
-        //                     -0.5636037357663563,
-        //                     -0.02500023783398342,
-        //                     0.058480143205789994,
-        //                     -0.08066198122317764,
-        //                     -0.6347762400779402,
-        //                     0.09259348156984432,
-        //                     0.24376615071129232,
-        //                     -0.060934117548973876
-        //                 ],
-        //                 [
-        //                     -0.6254675970069358,
-        //                     -0.4827518557882309,
-        //                     -0.020437166446539312,
-        //                     0.2678347847815012,
-        //                     0.16547527960371067,
-        //                     -0.02058412323899142,
-        //                     0.04073378076641038,
-        //                     0.0567291885264225,
-        //                     0.3537816115939555,
-        //                     0.20672970142323893
-        //                 ],
-        //                 [
-        //                     -0.07444082736442884,
-        //                     -0.12727057062986408,
-        //                     -0.08050337607617997,
-        //                     -0.655755853833828,
-        //                     0.039211429156290785,
-        //                     0.47347084629731573,
-        //                     0.2180228456049883,
-        //                     -0.11728427566615279,
-        //                     -0.35383333868853445,
-        //                     -0.11948038079001863
-        //                 ],
-        //                 [
-        //                     -0.0831135930025795,
-        //                     -0.06632711971339919,
-        //                     -0.028766222332227698,
-        //                     -0.5673748390335672,
-        //                     -0.10433484483186654,
-        //                     0.5677685472433643,
-        //                     -0.10734237930666268,
-        //                     -0.25356294663101375,
-        //                     0.4430464387058346,
-        //                     -0.019668991032096406
-        //                 ],
-        //                 [
-        //                     0.05175094579174799,
-        //                     0.09231875259708579,
-        //                     -0.22413646844736906,
-        //                     -0.1565522551051083,
-        //                     -0.04777578707539121,
-        //                     0.03353927497471294,
-        //                     0.48249158495201483,
-        //                     0.4880861078498969,
-        //                     0.03620034301399383,
-        //                     0.569776492166581
-        //                 ],
-        //                 [
-        //                     0.05920855209004053,
-        //                     0.44467905013730485,
-        //                     0.25053036794292377,
-        //                     -0.0379656543625336,
-        //                     0.25098823478664806,
-        //                     -0.12735149382752986,
-        //                     -0.00917697561005304,
-        //                     0.029568815593811457,
-        //                     -0.02657290060547654,
-        //                     0.013180191278350017
-        //                 ],
-        //                 [
-        //                     0.13602768534861898,
-        //                     0.3226214785230808,
-        //                     0.2286343900434878,
-        //                     -0.33554036271790333,
-        //                     -0.04092726525131268,
-        //                     -0.0969670091989637,
-        //                     -0.22642254357279956,
-        //                     -0.2037654929655946,
-        //                     0.10873684595623684,
-        //                     0.30306474511384046
-        //                 ]
-        //             ]
-        //         },
-        //         {
-        //             "inputs": [
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 1,
-        //                 1,
-        //                 0
-        //             ],
-        //             "outputs": [
-        //                 0,
-        //                 0,
-        //                 0,
-        //                 1
-        //             ],
-        //             "biases": [
-        //                 0.3960649354111316,
-        //                 0.4071008531620106,
-        //                 0.11443675180809187,
-        //                 0.005964237346354595
-        //             ],
-        //             "weights": [
-        //                 [
-        //                     0.2732988689417858,
-        //                     0.3061695633091727,
-        //                     -0.19422678368657778,
-        //                     -0.32208504729977966
-        //                 ],
-        //                 [
-        //                     -0.4498796570554358,
-        //                     0.5642623535169514,
-        //                     0.010286104941687496,
-        //                     0.20453845552753527
-        //                 ],
-        //                 [
-        //                     -0.14255442644361493,
-        //                     0.1392295287951117,
-        //                     -0.5810651105865061,
-        //                     0.2671534365638607
-        //                 ],
-        //                 [
-        //                     0.5597342579917558,
-        //                     -0.2995846110285111,
-        //                     0.33386448741720987,
-        //                     -0.16828588455647872
-        //                 ],
-        //                 [
-        //                     -0.5461824098641049,
-        //                     0.20109885540176667,
-        //                     -0.19251222598918344,
-        //                     0.4092452026873994
-        //                 ],
-        //                 [
-        //                     0.2095002248597413,
-        //                     -0.40083452483852744,
-        //                     0.019714142541561563,
-        //                     -0.24127271051740679
-        //                 ],
-        //                 [
-        //                     0.7463270668233967,
-        //                     0.08200758436855823,
-        //                     -0.09502707383677132,
-        //                     -0.1030054873565929
-        //                 ],
-        //                 [
-        //                     -0.06871184980659249,
-        //                     0.38013946045738634,
-        //                     -0.044145876107486104,
-        //                     -0.006748280352109216
-        //                 ],
-        //                 [
-        //                     0.26369352779762956,
-        //                     -0.45182654151387075,
-        //                     -0.1827800009646483,
-        //                     0.07195189105219135
-        //                 ],
-        //                 [
-        //                     -0.2588161569632543,
-        //                     0.21884569422391884,
-        //                     -0.042881448543748577,
-        //                     -0.4649940564419074
-        //                 ]
-        //             ]
-        //         }
-        //     ]
-        // }
 
         return () => {
             cancellationToken.cancelled = true
@@ -1661,6 +1459,13 @@ function GameCanvas() {
                             </div>
                         </div>
                     </div>
+                    {!controls && <div className="gameControlsContainerLower3">
+                        <p className="gameControlsContainerLower3Header">Choose which Neural Network to start with</p>
+                        <div className="gameControlsContainerLower3ButtonsContainer">
+                            <button className={!tempNewNeuralNetwork ? "gameControlsContainerLower3Button1" : "gameControlsContainerLower3Button1 activeButton"} onClick={() => setTempNewNeuralNetwork(true)}>New Neural Network</button>
+                            <button className={tempNewNeuralNetwork ? "gameControlsContainerLower3Button2" : "gameControlsContainerLower3Button2 activeButton"} onClick={() => setTempNewNeuralNetwork(false)}>Trained Neural Network</button>
+                        </div>
+                    </div>}
                     <div className="gameControlsContainerLower2">
                         <button className="gameControlStartButton" onClick={() => {gameActive ? setGameActive(false) : doNothing(); reloadGameState();}}>Start Game</button>
                         <button className="gameControlEndButton" onClick={() => setGameActive(false)}>End Game</button>
@@ -1685,6 +1490,8 @@ function GameCanvas() {
                     </div>
                     <div className="lowerCanvasContainerRight">
                         <div className="lowerCanvasContainerRightStatsContainer">
+                            <p className="lowerCanvasStatHeader">Current Generation: </p>
+                            <p className="lowerCanvasStatText">{currentGeneration}</p>
                             <p className="lowerCanvasStatHeader">Max Distance: </p>
                             <p className="lowerCanvasStatText">{maxDistance}</p>
                             <p className="lowerCanvasStatHeader">Best Brain: </p>
