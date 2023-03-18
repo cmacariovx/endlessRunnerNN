@@ -865,11 +865,11 @@ function GameCanvas() {
                     resetGameState()
                     console.log("Generation:", generation)
                     await gameLoop(population)
-                    setMaxDistance(currentMaxDistance)
-                    setBestBrain(bestBrain)
                 }
             }
 
+            setMaxDistance(currentMaxDistance)
+            setBestBrain(bestBrain)
             setGameActive(false)
         }
 
@@ -1668,7 +1668,7 @@ function GameCanvas() {
                     </div>
                 </div>
                 <div className="gameCanvasContainerMain">
-                    {!gameActive && singleMaxDistance &&
+                    {!gameActive && singleMaxDistance > 0 &&
                         <div className="gameOverContainer">
                             <p className="gameOverHeader">Game over!</p>
                             <p className="gameOverText">{'Max Distance: ' + singleMaxDistance}</p>
@@ -1685,9 +1685,9 @@ function GameCanvas() {
                     </div>
                     <div className="lowerCanvasContainerRight">
                         <div className="lowerCanvasContainerRightStatsContainer">
-                            <p className="lowerCanvasStatHeader">Current Max Distance: </p>
+                            <p className="lowerCanvasStatHeader">Max Distance: </p>
                             <p className="lowerCanvasStatText">{maxDistance}</p>
-                            <p className="lowerCanvasStatHeader">Current Best Brain: </p>
+                            <p className="lowerCanvasStatHeader">Best Brain: </p>
                             <p className="lowerCanvasStatText2">{JSON.stringify(bestBrain, null, 2)}</p>
                         </div>
                     </div>
