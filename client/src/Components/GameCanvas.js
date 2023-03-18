@@ -39,6 +39,8 @@ function GameCanvas() {
     const [tempChanged, setTempChanged] = useState(false)
 
     const [maxDistance, setMaxDistance] = useState(0)
+    const [singleMaxDistance, setSingleMaxDistance] = useState(0)
+
     const [bestBrain, setBestBrain] = useState()
 
     function reloadGameState() {
@@ -840,7 +842,7 @@ function GameCanvas() {
             async function runChar() {
                 character1 = new Character(50, gameCanvas.height - 100, 50, 100, 1, fullIdle, 9, 12, 0, 0, 32, 0)
                 let distance = await runCharacter(character1, cancellationToken)
-                console.log(distance)
+                setSingleMaxDistance(distance)
             }
 
             runChar()
@@ -1666,6 +1668,12 @@ function GameCanvas() {
                     </div>
                 </div>
                 <div className="gameCanvasContainerMain">
+                    {!gameActive && singleMaxDistance &&
+                        <div className="gameOverContainer">
+                            <p className="gameOverHeader">Game over!</p>
+                            <p className="gameOverText">{'Max Distance: ' + singleMaxDistance}</p>
+                        </div>
+                    }
                     <canvas id="gameCanvas" ref={gameCanvasRef}/>
                 </div>
                 <p className={!controls ? "lowerCanvasTitle" : "lowerCanvasTitle crossThroughText"}>Neural Network Stats</p>

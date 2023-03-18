@@ -181,6 +181,28 @@
         margin-top: 40px;
     }
 
+        .gameOverContainer {
+            height: 200px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            background-color: var(--black);
+            border-radius: 10px;
+        }
+
+            .gameOverHeader {
+                font-size: 20px;
+                font-weight: bold;
+                margin-bottom: 40px;
+            }
+
+            .gameOverText {
+                font-size: 16px;
+            }
+
     .lowerCanvasTitle {
         font-size: 18px;
         font-weight: bold;
