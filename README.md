@@ -40,4 +40,4 @@ The best-performing networks are found by iterating through multiple generations
 
 ### To Sum It All up
 
-In summary, this project showcases the power of artificial intelligence, neural networks, and genetic algorithms in creating a character that learns and adapts to its environment. By combining algorithms like the Liang-Barsky algorithm and activation functions such as ELU and softmax, this project pushes the boundaries of traditional bot gameplay, offering an engaging and interactive experience for players.
+In summary, this project showcases the power of artificial intelligence, neural networks, and genetic algorithms in creating a character that learns and adapts to its environment. By combining algorithms like the Liang-Barsky algorithm and activation functions such as ELU and Softmax, this project pushes the boundaries of traditional bot gameplay.
