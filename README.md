@@ -9,13 +9,13 @@ Starting from a new neural network, with a population of 100, will evolve a char
 
 Starting from our trained neural network, with a population of 100, will evolve a character that can successfully navigate over obstacles also with astonishing speed and accuracy, on average in <5 Generations or <2 Min.
 
-### Character's Sensors
+### Character's Vision
 
 This character is equipped with sensors that are rays projected from the character's position at various angles. These sensors use the Liang-Barsky algorithm to detect obstacles by calculating the intersection of the sensor lines with the obstacle's hitbox. The Liang-Barsky algorithm is a computationally efficient line-clipping algorithm that checks if a line segment intersects a rectangular bounding box, providing the intersection points if they exist.
 
 Once the sensors detect the obstacles, the distances between the character and the obstacles are measured and normalized into a range between 0 and 1. These normalized values are arranged in an array that serves as the input data for the neural network.
 
-### Neural Network
+### Character's Brain - Neural Network
 
 The neural network processes the input data (sensor readings) through layers of interconnected nodes or neurons. Each node performs a weighted sum of its inputs and applies an activation function to the result. In our project, we use the Exponential Linear Unit (ELU) activation function, which has the advantage of reducing the vanishing gradient problem during training. The ELU function is defined as:
 
