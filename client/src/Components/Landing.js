@@ -8,7 +8,6 @@ import neuralNetworkPic from '../assets/neuralNetwork.png'
 function Landing() {
     const [isCharacterVision, setIsCharacterVision] = useState(false)
     const [isCharacterBrain, setIsCharacterBrain] = useState(false)
-    const [isCharacterDecisions, setIsCharacterDecisions] = useState(false)
     const [isGeneticAlgorithm, setIsGeneticAlgorithm] = useState(false)
     const [isEvolution, setIsEvolution] = useState(false)
 
@@ -21,7 +20,6 @@ function Landing() {
     function openDetails(n) {
         if (n === 0) setIsCharacterVision(true)
         else if (n === 1) setIsCharacterBrain(true)
-        else if (n === 2) setIsCharacterDecisions(true)
         else if (n === 3) setIsGeneticAlgorithm(true)
         else if (n === 4) setIsEvolution(true)
     }
@@ -29,7 +27,6 @@ function Landing() {
     function closeDetails() {
         if (isCharacterVision) setIsCharacterVision(false)
         if (isCharacterBrain) setIsCharacterBrain(false)
-        if (isCharacterDecisions) setIsCharacterDecisions(false)
         if (isGeneticAlgorithm) setIsGeneticAlgorithm(false)
         if (isEvolution) setIsEvolution(false)
     }
@@ -40,50 +37,49 @@ function Landing() {
                 <div className="detailsBackdrop" onClick={closeDetails}>
                     <div className="detailsContainer">
                         <p className="detailsHeader">Character's Vision</p>
-                        <p className="detailsText">The character has a set of rays (sensors) emanating from its position, which detect the distances to the nearest obstacles. These distances are used as inputs to the neural network. The drawSensors() function is responsible for drawing the rays and calculating the distances. It iterates through the obstacles and calls rayObstacleIntersection() to find the intersection point between each ray and the obstacle's hitbox. The intersection function uses the Liang-Barsky algorithm to calculate the intersection points.</p>
+                        <p className="detailsText">This character is equipped with sensors that are rays projected from the character's position at various angles. These sensors use the Liang-Barsky algorithm to detect obstacles by calculating the intersection of the sensor lines with the obstacle's hitbox. The Liang-Barsky algorithm is a computationally efficient line-clipping algorithm that checks if a line segment intersects a rectangular bounding box, providing the intersection points if they exist.
+
+                        Once the sensors detect the obstacles, the distances between the character and the obstacles are measured and normalized into a range between 0 and 1. These normalized values are arranged in an array that serves as the input data for the neural network.</p>
                     </div>
                 </div>}
                 {isCharacterBrain &&
                 <div className="detailsBackdrop" onClick={closeDetails}>
                     <div className="detailsContainer">
                         <p className="detailsHeader">Character's Brain - Neural Network</p>
-                        <p className="detailsText">The character's brain (neural network) processes the input from the sensors and outputs an array of actions for the character. It consists of an input layer (13 neurons, 1 for each ray/sensor), a hidden layer (10 neurons), and an output layer (4 neurons). Each layer has neurons that store weights and biases. The input layer receives the distances from the sensors, and each neuron in the hidden layer calculates a weighted sum of the inputs, applies an activation function (ReLU), and passes the result to the next layer. The output layer calculates a similar weighted sum and applies a sigmoid activation function, producing an output in the range of 0 to 1. In this case, there are 4 outputs corresponding to 4 possible actions: move left, jump, move right, and duck.</p>
-                    </div>
-                </div>}
-                {isCharacterDecisions &&
-                <div className="detailsBackdrop" onClick={closeDetails}>
-                    <div className="detailsContainer">
-                        <p className="detailsHeader">Character's Decisions</p>
-                        <p className="detailsText">The output from the character's brain (neural network) is used to decide which action the character will take. If the output value is greater than or equal to 0.5, the corresponding action will be performed.</p>
+                        <p className="detailsText">The neural network processes the input data (sensor readings) through layers of interconnected nodes or neurons. Each node performs a weighted sum of its inputs and applies an activation function to the result. In our project, we use the Exponential Linear Unit (ELU) activation function, which has the advantage of reducing the vanishing gradient problem during training. The ELU function is defined as:
+                        <br></br>
+                        <br></br>
+                        {'ELU(x) = x, if x > 0 = α(exp(x) - 1), if x ≤ 0'}
+                        <br></br>
+                        <br></br>
+
+                        where α is a hyperparameter, typically set to 1.
+
+                        The output layer of the neural network uses the softmax function, which converts the raw output values into probabilities. The softmax function takes the exponential of each output value and normalizes the result so that the sum of the probabilities is equal to 1. This allows us to interpret the output as a probability distribution over the possible actions that the character should take, such as jumping or moving left or right.
+
+                        During the training process, the neural network's weights are adjusted to minimize the error between the predicted outputs and the desired outputs.
+
+                        To summarize, the character's advanced sensor system uses the Liang-Barsky algorithm to detect collisions in real-time, normalizes the ray distances, and feeds them to the neural network. The neural network utilizes the ELU activation function in the hidden layers and the softmax function in the output layer to produce a probability distribution over possible actions. This advanced architecture enables the character to make instantaneous complex decisions based on its environment, demonstrating a high level of technical sophistication.</p>
                     </div>
                 </div>}
                 {isGeneticAlgorithm &&
                 <div className="detailsBackdrop" onClick={closeDetails}>
                     <div className="detailsContainer">
                         <p className="detailsHeader">Genetic Algorithm</p>
-                        <p className="detailsText">The genetic algorithm is used to evolve the neural networks in the population of characters. The algorithm consists of the following steps:
-                            <br/>
-                            <br/>
-                            Initialization: The initial population is created with a set of characters. If there is a stored neural network in the local storage (from a previous run), the best brain is loaded and used as the basis for creating the initial population with mutations. If no stored network is available, random initial characters are created.
-                            <br/>
-                            <br/>
-                            Fitness Evaluation: Each character is run through the game environment, and its fitness is determined based on the distance it travels before colliding with an obstacle. The runCharacter() function handles the character's movement through the environment, updating its position, drawing its sensors, and feeding the sensor data to the neural network.
-                            <br/>
-                            <br/>
-                            Selection: The character with the highest fitness (distance traveled) is selected as the best character.
-                            <br/>
-                            <br/>
-                            Reproduction: The next generation of characters is created by copying the best character's neural network and applying mutations. The mutation function NeuralNetwork.mutate() introduces random changes in the weights and biases of the network.
-                            <br/>
-                            <br/>
-                            Replacement: The old population of characters is replaced with the new population created in the reproduction step.</p>
+                        <p className="detailsText">To find the best neural network for controlling the character, we employ a genetic algorithm. The genetic algorithm works with a population of neural networks, each having different weights. The fitness of each network is evaluated based on the character's performance in the game, such as the distance traveled or the number of obstacles avoided.
+                        <br></br>
+                        <br></br>
+                        The genetic algorithm proceeds in generations. In each generation, networks with higher fitness scores are more likely to be selected for reproduction. Reproduction involves slight mutation of the previous generations best brain to create new networks. This process mimics the natural process of evolution, aiming to produce better-performing networks over time.
+                        <br></br>
+                        <br></br>
+                        The best-performing networks are found by iterating through multiple generations and selecting the networks with the highest fitness scores. These networks are then used to control the character's movements in the game.</p>
                     </div>
                 </div>}
                 {isEvolution &&
                 <div className="detailsBackdrop" onClick={closeDetails}>
                     <div className="detailsContainer">
-                        <p className="detailsHeader">Evolution</p>
-                        <p className="detailsText">The genetic algorithm is run for a specified number of generations, evolving the population of characters. After each generation, the best neural network is stored in the local storage.</p>
+                        <p className="detailsHeader">To Sum It All Up</p>
+                        <p className="detailsText">In summary, this project showcases the power of artificial intelligence, neural networks, and genetic algorithms in creating a character that learns and adapts to its environment. By combining algorithms like the Liang-Barsky algorithm and activation functions such as ELU and softmax, this project pushes the boundaries of traditional bot gameplay, offering an engaging and interactive experience for players.</p>
                     </div>
                 </div>}
             <div className="landingHeaderContainer">
@@ -106,9 +102,8 @@ function Landing() {
                         <p className="landingBodyAboutLeftTitle">How It Works</p>
                         <button className="landingBodyAboutLeftOption" onClick={() => openDetails(0)}>Character's Vision</button>
                         <button className="landingBodyAboutLeftOption" onClick={() => openDetails(1)}>Character's Brain - Neural Network</button>
-                        <button className="landingBodyAboutLeftOption" onClick={() => openDetails(2)}>Character's Decisions</button>
                         <button className="landingBodyAboutLeftOption" onClick={() => openDetails(3)}>Genetic Algorithm</button>
-                        <button className="landingBodyAboutLeftOption" onClick={() => openDetails(4)}>Evolution</button>
+                        <button className="landingBodyAboutLeftOption" onClick={() => openDetails(4)}>To Sum It All Up</button>
                     </div>
                     <div className="landingBodyAboutRight">
                         <p className="landingBodyAboutRightText">Character's Brain</p>
