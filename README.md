@@ -34,7 +34,7 @@ To summarize, the character's advanced sensor system uses the Liang-Barsky algor
 
 To find the best neural network for controlling the character, we employ a genetic algorithm. The genetic algorithm works with a population of neural networks, each having different weights. The fitness of each network is evaluated based on the character's performance in the game, such as the distance traveled or the number of obstacles avoided.
 
-The genetic algorithm proceeds in generations. In each generation, networks with higher fitness scores are more likely to be selected for reproduction. Reproduction involves crossover (exchanging weights between two parent networks) and mutation (randomly altering some weights) to create new networks. This process mimics the natural process of evolution, aiming to produce better-performing networks over time.
+The genetic algorithm proceeds in generations. In each generation, networks with higher fitness scores are more likely to be selected for reproduction. Reproduction involves slight mutation of the previous generations best brain to create new networks. This process mimics the natural process of evolution, aiming to produce better-performing networks over time.
 
 The best-performing networks are found by iterating through multiple generations and selecting the networks with the highest fitness scores. These networks are then used to control the character's movements in the game.
 
