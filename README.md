@@ -5,7 +5,7 @@
 
 This character must successfully navigate through an obstacle-filled environment using artificial intelligence. This project combines concepts from artificial intelligence, neural networks, and genetic algorithms to create a character that adapts and improves its performance in the game.
 
-Starting from a new neural network, with a population of 100, instead of our trained neural network, will evolve a character that can successfully navigate over obstacles with astonishing speed and accuracy, on average in <20 Generations or <7 Min.
+Starting from a new neural network, with a population of 100, will evolve a character that can successfully navigate over obstacles with astonishing speed and accuracy, on average in <20 Generations or <7 Min.
 
 Starting from our trained neural network, with a population of 100, will evolve a character that can successfully navigate over obstacles also with astonishing speed and accuracy, on average in <5 Generations or <2 Min.
 
