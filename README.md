@@ -5,17 +5,23 @@
 
 This character must successfully navigate through an obstacle-filled environment using artificial intelligence. This project combines concepts from artificial intelligence, neural networks, and genetic algorithms to create a character that adapts and improves its performance in the game.
 
-Starting from a new neural network, with a population of 100, will evolve a character that can successfully navigate over obstacles with astonishing speed and accuracy, on average in <20 Generations or <7 Min.
+Engineered with an ultra-high-performance neural network architecture implementing Exponential Linear Unit (ELU) activation functions in hidden layers, this project comfortably performs a staggering **1.2 million synaptic connections per second** when parallelizing a population of 100.
 
-Starting from our trained neural network, with a population of 100, will evolve a character that can successfully navigate over obstacles also with astonishing speed and accuracy, on average in <5 Generations or <2 Min.
+Starting from a new neural network, **with a population of 100**, will evolve a character that can successfully navigate over obstacles with astonishing speed and accuracy, on average in <20 Generations or <7 Min.
+
+Starting from our trained neural network, **with a population of 100**, will evolve a character that can successfully navigate over obstacles also with astonishing speed and accuracy, on average in <5 Generations or <2 Min.
 
 ### Character's Vision
 
-This character is equipped with sensors that are rays projected from the character's position at various angles. These sensors use the Liang-Barsky algorithm to detect obstacles by calculating the intersection of the sensor lines with the obstacle's hitbox. The Liang-Barsky algorithm is a computationally efficient line-clipping algorithm that checks if a line segment intersects a rectangular bounding box, providing the intersection points if they exist.
+<img width="700" alt="gamePic" src="https://user-images.githubusercontent.com/96849420/226223290-2f6ed23e-5a7a-47aa-8809-454ba7cdb439.png">
+
+This character is equipped with sensors that are rays projected from the character's position at various angles. These sensors use the Liang-Barsky algorithm to detect obstacles by calculating the intersection of the sensor lines with the obstacle's **hitbox**. The Liang-Barsky algorithm is a computationally efficient line-clipping algorithm that checks if a line segment intersects a rectangular bounding box, providing the intersection points if they exist.
 
 Once the sensors detect the obstacles, the distances between the character and the obstacles are measured and normalized into a range between 0 and 1. These normalized values are arranged in an array that serves as the input data for the neural network.
 
 ### Character's Brain - Neural Network
+
+<img width="426" alt="neuralNetwork" src="https://user-images.githubusercontent.com/96849420/226223419-287e7c0a-444e-4faf-ae2f-c117f75c7948.png">
 
 The neural network processes the input data (sensor readings) through layers of interconnected nodes or neurons. Each node performs a weighted sum of its inputs and applies an activation function to the result. In our project, we use the Exponential Linear Unit (ELU) activation function, which has the advantage of reducing the vanishing gradient problem during training. The ELU function is defined as:
 
