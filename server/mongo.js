@@ -26,8 +26,7 @@ async function saveBrain(req, res, next, brain, maxDistance) {
       await pool.query(insertQuery, values);
       res.json({ message: 'Brain saved successfully' });
     } catch (error) {
-    console.error('Error in saveBrain function:', error);
-      res.status(500).json({ message: 'Could not save brain' });
+      res.status(500).json({ message: error });
     }
 }
 
