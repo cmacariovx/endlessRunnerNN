@@ -15,7 +15,7 @@ async function fetchBrain(req, res, next, newNeuralNetwork) {
   }
 
   try {
-    const result = await pool.query('SELECT * FROM brains WHERE id = 1');
+    const result = await pool.query('SELECT * FROM "Brains".brains WHERE id = 1');
     const brainData = JSON.parse(result.rows[0].brain);
     res.json({ ...result.rows[0], brain: brainData });
 
@@ -26,8 +26,8 @@ async function fetchBrain(req, res, next, newNeuralNetwork) {
 
 async function saveBrain(req, res, next, brain, maxDistance) {
     try {
-      const insertQuery =
-      'INSERT INTO "Brains".brains (id, brain, max_distance) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET brain = $1, max_distance = $2';
+        const insertQuery =
+        'INSERT INTO "Brains".brains (id, brain, max_distance) OVERRIDING SYSTEM VALUE VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET brain = $1, max_distance = $2';
 
       const values = [brain, maxDistance];
       await pool.query(insertQuery, values);
