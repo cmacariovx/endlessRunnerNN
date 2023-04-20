@@ -1,6 +1,11 @@
 const { Pool } = require('pg');
 const connectionString = process.env.POSTGRES_URL;
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+    connectionString,
+    ssl: {
+        rejectUnauthorized: false,
+    },
+  });
 
 async function fetchBrain(req, res, next, newNeuralNetwork) {
   if (newNeuralNetwork) {
