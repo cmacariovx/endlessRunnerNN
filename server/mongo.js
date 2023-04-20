@@ -1,49 +1,35 @@
-const MongoClient = require("mongodb").MongoClient
-const ObjectId = require("mongodb").ObjectId
-require("dotenv").config()
-
-const mongoUrl = process.env.MONGO_URL
+const { Pool } = require('pg');
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
 
 async function fetchBrain(req, res, next, newNeuralNetwork) {
-    if (newNeuralNetwork) {
-        res.json({error: "oops"})
-        return
-    }
+  if (newNeuralNetwork) {
+    res.json({ error: 'oops' });
+    return;
+  }
 
-    const client = new MongoClient(mongoUrl)
-    await client.connect()
-    const db = client.db("evolve")
+  try {
+    const result = await pool.query('SELECT * FROM brains WHERE id = 1');
+    const brainData = JSON.parse(result.rows[0].brain);
+    res.json({ ...result.rows[0], brain: brainData });
 
-    let response = await db.collection("brains").findOne({_id: new ObjectId("6415eb9d847424eb09191482")})
-
-    client.close()
-    res.json(response)
+  } catch (error) {
+    res.status(500).json({ message: 'Could not fetch brain' });
+  }
 }
 
 async function saveBrain(req, res, next, brain, maxDistance) {
-    const client = new MongoClient(mongoUrl)
-    let response
-
     try {
-        await client.connect()
-        const db = client.db("evolve")
-
-        const update = {
-            $set: {
-              brain: brain,
-              maxDistance: maxDistance,
-            },
-        }
-
-        response = await db.collection("brains").updateOne({_id: new ObjectId("6415eb9d847424eb09191482")}, update)
+      const insertQuery =
+        'INSERT INTO brains (id, brain, max_distance) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET brain = $1, max_distance = $2';
+      const values = [brain, maxDistance];
+      await pool.query(insertQuery, values);
+      res.json({ message: 'Brain saved successfully' });
+    } catch (error) {
+    console.error('Error in saveBrain function:', error);
+      res.status(500).json({ message: 'Could not save brain' });
     }
-    catch(error) {
-        return res.json({"message": "Could not save brain"})
-    }
-
-    client.close()
-    res.json(response)
 }
 
-exports.fetchBrain = fetchBrain
-exports.saveBrain = saveBrain
+exports.fetchBrain = fetchBrain;
+exports.saveBrain = saveBrain;
