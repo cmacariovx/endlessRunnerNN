@@ -17,6 +17,7 @@ function GameCanvas() {
     const [gameActive, setGameActive] = useState(false)
     const [images, setImages] = useState({})
     const [reload, setReload] = useState(false)
+    const [showModal, setShowModal] = useState(true);
 
     const [tempPopSize, setTempPopSize] = useState(50)
     const [tempGenSize, setTempGenSize] = useState(10)
@@ -1339,6 +1340,13 @@ function GameCanvas() {
         }
     }, [controls, gameActive, images, reload])
 
+    const handleModalClick = () => {
+        setShowModal(false);
+    };
+
+    const handleModalContentClick = (event) => {
+        event.stopPropagation();
+    };
 
     return (
         <React.Fragment>
@@ -1346,6 +1354,15 @@ function GameCanvas() {
                 Your screen must be at least 1050px wide and 600px in height to use this app.
             </div>
             <div className="gameCanvasContainer">
+                {showModal &&
+                    <div className='modal-container' onClick={handleModalClick}>
+                        <div className='modal-content' onClick={handleModalContentClick}>
+                            <p className="modalText1">This game is graphically and computationally heavy. A dedicated GPU is recommended for optimal performance. It will appear very slow and laggy on computers without a dedicated GPU.</p>
+                            <p className="modalText2">Note that our trained neural network is a starting point and it may take a couple generations to adapt to your environment settings. Using a higher population will enable faster convergence.</p>
+                            <p className="modalText3">If you want to train your own new character, a population of 100 is recommended for the fastest convergence. Note that this is ~1.2 million synaptic connections per second for 100 characters, not including the graphics rendering, sensor computing and preprocessing happening 60 times per second, per character. <br></br><br></br>Again, a dedicated GPU is recommended.</p>
+                        </div>
+                    </div>
+                }
                 <div className="gameControlsContainer">
                     <div className="gameControlsContainerUpper">
                         <div className="gameControlContainer">
