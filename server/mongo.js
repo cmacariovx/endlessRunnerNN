@@ -27,7 +27,8 @@ async function fetchBrain(req, res, next, newNeuralNetwork) {
 async function saveBrain(req, res, next, brain, maxDistance) {
     try {
       const insertQuery =
-        'INSERT INTO brains (id, brain, max_distance) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET brain = $1, max_distance = $2';
+      'INSERT INTO "Brains".brains (id, brain, max_distance) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET brain = $1, max_distance = $2';
+
       const values = [brain, maxDistance];
       await pool.query(insertQuery, values);
       res.json({ message: 'Brain saved successfully' });
