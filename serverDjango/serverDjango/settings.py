@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import dj_database_url
+import django_heroku
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
@@ -89,5 +90,4 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
-import django_heroku
 django_heroku.settings(locals())
