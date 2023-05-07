@@ -1,4 +1,4 @@
-[Evolve - An Evolutionary AI Game](https://evolve-cm.web.app/ "Evolve")
+[Evolve - An Evolutionary AI Game](https://evolve-cm.site/ "Evolve")
 =======
 
 ### Evolve is a game featuring an intelligent character powered by a neural network in an endless runner.
