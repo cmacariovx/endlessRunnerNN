@@ -3,7 +3,7 @@ import json
 
 class Brain(models.Model):
     brain = models.TextField()
-    max_distance = models.DecimalField(max_digits=5, decimal_places=2)
+    max_distance = models.DecimalField(max_digits=10, decimal_places=2)
 
     @property
     def brain_data(self):

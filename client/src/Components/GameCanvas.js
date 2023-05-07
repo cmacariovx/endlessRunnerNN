@@ -752,7 +752,7 @@ function GameCanvas() {
         let storedBestMaxDistance
 
         async function saveBrain() {
-            const response = await fetch(process.env.REACT_APP_BACKEND_URL + "main/saveBrain", {
+            const response = await fetch(process.env.REACT_APP_BACKEND_URL + "api/main/saveBrain", {
                 method: "POST",
                 body: JSON.stringify({
                     brain: bestBrain,
@@ -768,7 +768,7 @@ function GameCanvas() {
         }
 
         async function fetchBrain() {
-            const response = await fetch(process.env.REACT_APP_BACKEND_URL + "main/fetchBrain", {
+            const response = await fetch(process.env.REACT_APP_BACKEND_URL + "api/main/fetchBrain", {
                 method: "POST",
                 body: JSON.stringify({
                     newNeuralNetwork: newNeuralNetwork
