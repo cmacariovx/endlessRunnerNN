@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import java.util.HashMap;
+import java.util.Map;
 
 import com.evolve.main.service.BrainService;
 
@@ -20,8 +21,10 @@ public class BrainController {
     }
 
     @PostMapping("/saveBrain")
-    public ResponseEntity<Object> saveBrain(@RequestBody String brain, int maxDistance) {
+    public ResponseEntity<Object> saveBrain(@RequestBody Map<String, Object> body) {
         try {
+            final String brain = (String)body.get("brain");
+            final int maxDistance = (Integer)body.get("maxDistance");
             this.brainService.saveBrain(brain, maxDistance);
             final HashMap<String, Boolean> response = new HashMap<>();
             response.put("brainSaved", true);
@@ -37,9 +40,12 @@ public class BrainController {
     }
 
     @PostMapping("/fetchBrain")
-    public ResponseEntity<Object> fetchBrain(boolean newNeuralNetwork) {
+    public ResponseEntity<Object> fetchBrain(@RequestBody Map<String, Boolean> body) {
         try {
-            final String brain = this.brainService.fetchBrain(newNeuralNetwork);
+            final boolean newNeuralNetwork = body.get("newNeuralNetwork");
+            if (newNeuralNetwork) throw new RuntimeException("New neural network was chosen.");
+
+            final String brain = this.brainService.fetchBrain();
             final HashMap<String, String> response = new HashMap<>();
             response.put("brain", brain);
             return new ResponseEntity<Object>(response, HttpStatus.valueOf(200));

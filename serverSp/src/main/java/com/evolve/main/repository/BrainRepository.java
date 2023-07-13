@@ -24,7 +24,7 @@ public class BrainRepository {
         }
     }
 
-    public String fetchBrain(boolean newNeuralNetwork) {
+    public String fetchBrain() {
         try {
             Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM brains WHERE id = 1");
             return (String)row.get("brain");

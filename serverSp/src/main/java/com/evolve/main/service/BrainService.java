@@ -22,9 +22,9 @@ public class BrainService {
         }
     }
 
-    public String fetchBrain(boolean newNeuralNetwork) {
+    public String fetchBrain() {
         try {
-            return brainRepository.fetchBrain(newNeuralNetwork);
+            return brainRepository.fetchBrain();
         }
         catch (Exception err) {
             System.out.println("Brain Service - Fetch Brain: " + err.getMessage());
