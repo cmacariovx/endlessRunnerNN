@@ -1,7 +1,7 @@
 [Evolve - An Evolutionary AI Game](https://evolve-cm.site/ "Evolve")
 =======
 
-### Evolve is a game featuring an intelligent character powered by a neural network in an endless runner.
+### Evolve is a game featuring an intelligent character powered by a neural network in an endless runner (application diagram at the end).
 
 This character must successfully navigate through an obstacle-filled environment using artificial intelligence. This project combines concepts from artificial intelligence, neural networks, and genetic algorithms to create a character that adapts and improves its performance in the game.
 
